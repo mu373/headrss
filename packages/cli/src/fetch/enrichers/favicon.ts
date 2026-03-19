@@ -63,16 +63,13 @@ async function discoverFavicon(siteUrl: string, timeoutMs: number): Promise<stri
     return null;
   }
 
-  const document = new DOMParser().parseFromString(html, "text/html");
+  const linkPattern = /<link\s[^>]*rel\s*=\s*["'][^"']*icon[^"']*["'][^>]*>/gi;
+  const hrefPattern = /href\s*=\s*["']([^"']+)["']/i;
 
-  for (const element of document.querySelectorAll("link[rel]")) {
-    const rel = element.getAttribute("rel")?.toLowerCase() ?? "";
-    if (!rel.includes("icon")) {
-      continue;
-    }
-
-    const href = element.getAttribute("href");
-    if (href === null || href.trim().length === 0) {
+  for (const match of html.matchAll(linkPattern)) {
+    const hrefMatch = hrefPattern.exec(match[0]);
+    const href = hrefMatch?.[1]?.trim();
+    if (href === undefined || href.length === 0) {
       continue;
     }
 

@@ -103,6 +103,9 @@ importers:
       '@hono/zod-openapi':
         specifier: latest
         version: 1.2.2(hono@4.12.8)(zod@4.3.6)
+      fast-xml-parser:
+        specifier: ^5.5.6
+        version: 5.5.6
       hono:
         specifier: latest
         version: 4.12.8

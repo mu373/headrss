@@ -12,6 +12,7 @@ import {
   OPML_BATCH_SIZE,
   RATE_LIMIT_WINDOW_SECONDS,
 } from "@headrss/core";
+import { XMLParser } from "fast-xml-parser";
 import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { z, ZodError } from "zod";
@@ -291,17 +292,33 @@ const escapeXml = (value: string): string =>
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&apos;");
 
-const getAttr = (element: Element, names: readonly string[]): string | null => {
+interface OpmlOutlineNode {
+  "@_xmlUrl"?: string;
+  "@_xmlurl"?: string;
+  "@_htmlUrl"?: string;
+  "@_htmlurl"?: string;
+  "@_title"?: string;
+  "@_text"?: string;
+  "@_type"?: string;
+  "@_category"?: string;
+  "@_categories"?: string;
+  outline?: OpmlOutlineNode | OpmlOutlineNode[];
+}
+
+const getOutlineAttr = (
+  node: OpmlOutlineNode,
+  names: readonly string[],
+): string | null => {
   for (const name of names) {
-    const value = element.getAttribute(name);
-    if (value !== null) {
+    const key = `@_${name}` as keyof OpmlOutlineNode;
+    const value = node[key];
+    if (typeof value === "string") {
       const trimmed = value.trim();
       if (trimmed.length > 0) {
         return trimmed;
       }
     }
   }
-
   return null;
 };
 
@@ -441,57 +458,80 @@ const ensureFeed = async (store: EntryStore, id: number): Promise<Feed> => {
 };
 
 const parseOpml = (xml: string): ImportedFeedOutline[] => {
-  const document = new DOMParser().parseFromString(xml, "text/xml");
-  const parserError = document.querySelector("parsererror");
-  if (parserError !== null) {
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: "@_",
+    isArray: (name) => name === "outline",
+  });
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = parser.parse(xml) as Record<string, unknown>;
+  } catch {
     throw apiError(400, "invalid_opml", "OPML could not be parsed.");
   }
 
-  const body = document.querySelector("opml > body") ?? document.querySelector("body");
-  if (body === null) {
+  const opml = parsed.opml as Record<string, unknown> | undefined;
+  const body = (opml?.body ?? parsed.body) as
+    | { outline?: OpmlOutlineNode | OpmlOutlineNode[] }
+    | undefined;
+
+  if (body === undefined) {
     throw apiError(400, "invalid_opml", "OPML body element is required.");
   }
 
   const outlines: ImportedFeedOutline[] = [];
-  const parseCategoryLabels = (element: Element): string[] => {
-    const categories = getAttr(element, ["category", "categories"]);
+
+  const parseCategoryLabels = (node: OpmlOutlineNode): string[] => {
+    const categories = getOutlineAttr(node, ["category", "categories"]);
     if (categories === null) {
       return [];
     }
-
     return categories
       .split(/[,/]/)
       .map((value) => value.trim())
       .filter((value) => value.length > 0);
   };
 
-  const walk = (parent: Element, labels: string[]): void => {
-    for (const child of Array.from(parent.children)) {
-      if (child.tagName.toLowerCase() !== "outline") {
-        continue;
-      }
+  const toArray = (
+    value: OpmlOutlineNode | OpmlOutlineNode[] | undefined,
+  ): OpmlOutlineNode[] => {
+    if (value === undefined) return [];
+    return Array.isArray(value) ? value : [value];
+  };
 
-      const xmlUrl = getAttr(child, ["xmlUrl", "xmlurl"]);
+  const walk = (nodes: OpmlOutlineNode[], labels: string[]): void => {
+    for (const node of nodes) {
+      const xmlUrl = getOutlineAttr(node, ["xmlUrl", "xmlurl"]);
       if (xmlUrl !== null) {
-        const outlineLabels = [...new Set([...labels, ...parseCategoryLabels(child)])];
+        const outlineLabels = [
+          ...new Set([...labels, ...parseCategoryLabels(node)]),
+        ];
         outlines.push({
           url: xmlUrl,
-          title: getAttr(child, ["title", "text"]),
-          siteUrl: getAttr(child, ["htmlUrl", "htmlurl"]),
+          title: getOutlineAttr(node, ["title", "text"]),
+          siteUrl: getOutlineAttr(node, ["htmlUrl", "htmlurl"]),
           labels: outlineLabels,
         });
         continue;
       }
 
-      const labelName = getAttr(child, ["title", "text"]);
-      walk(child, labelName === null ? labels : [...labels, labelName]);
+      const labelName = getOutlineAttr(node, ["title", "text"]);
+      walk(
+        toArray(node.outline),
+        labelName === null ? labels : [...labels, labelName],
+      );
     }
   };
 
-  walk(body, []);
+  walk(toArray(body.outline), []);
 
   if (outlines.length === 0) {
-    throw apiError(400, "invalid_opml", "No feed outlines were found in the OPML document.");
+    throw apiError(
+      400,
+      "invalid_opml",
+      "No feed outlines were found in the OPML document.",
+    );
   }
 
   return outlines;
@@ -624,8 +664,9 @@ export const adminRoutes = (
     }
 
     console.error(error);
+    const message = error instanceof Error ? error.message : "An unexpected error occurred.";
     return c.json(
-      jsonError("internal_error", "An unexpected error occurred."),
+      jsonError("internal_error", message),
       500,
     );
   });

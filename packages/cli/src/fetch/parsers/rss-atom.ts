@@ -177,17 +177,27 @@ function getText(value: unknown): string | null {
 }
 
 function readAtomLink(value: unknown): string | null {
+  let selfHref: string | null = null;
+
   for (const candidate of asArray(value)) {
     const link = toObject(candidate);
     const rel = typeof link.rel === "string" ? link.rel : "alternate";
     const href = typeof link.href === "string" ? link.href : getText(candidate);
 
-    if ((rel === "alternate" || rel === "self") && href !== null) {
+    if (href === null) {
+      continue;
+    }
+
+    if (rel === "alternate") {
       return href;
+    }
+
+    if (rel === "self" && selfHref === null) {
+      selfHref = href;
     }
   }
 
-  return null;
+  return selfHref;
 }
 
 function getAtomAuthor(value: unknown): string | null {
@@ -271,24 +281,21 @@ function resolveHtml(value: string | null, baseUrl: string | null): string | nul
     return value;
   }
 
-  const document = new DOMParser().parseFromString(`<body>${value}</body>`, "text/html");
-
-  for (const element of document.querySelectorAll("[href], [src], [poster]")) {
-    for (const attribute of ["href", "src", "poster"] as const) {
-      const current = element.getAttribute(attribute);
-      if (current === null || current.trim().length === 0) {
-        continue;
+  return value.replace(
+    /(<[^>]+?\s)((?:href|src|poster)\s*=\s*)(["'])([^"']*?)\3/gi,
+    (_match, prefix, attr, quote, url) => {
+      const trimmed = (url as string).trim();
+      if (trimmed.length === 0) {
+        return `${prefix}${attr}${quote}${url}${quote}`;
       }
-
       try {
-        element.setAttribute(attribute, new URL(current, baseUrl).toString());
+        const resolved = new URL(trimmed, baseUrl as string).toString();
+        return `${prefix}${attr}${quote}${resolved}${quote}`;
       } catch {
-        // Keep the original attribute if it cannot be resolved.
+        return `${prefix}${attr}${quote}${url}${quote}`;
       }
-    }
-  }
-
-  return document.body.innerHTML;
+    },
+  );
 }
 
 function truncateUtf8(value: string | null, maxBytes: number): string | null {

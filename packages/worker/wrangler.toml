@@ -1,6 +1,7 @@
 name = "headrss"
 main = "src/index.ts"
 compatibility_date = "2026-03-19"
+compatibility_flags = ["nodejs_compat"]
 
 # Required secrets:
 # - TOKEN_KEY
@@ -13,3 +14,4 @@ compatibility_date = "2026-03-19"
 binding = "DB"
 database_name = "headrss"
 database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "../adapter/d1/src/migrations"
