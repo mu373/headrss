@@ -15,7 +15,6 @@
   "dependencies": {
     "@headrss/core": "workspace:*",
     "commander": "latest",
-    "fast-xml-parser": "latest",
     "p-limit": "latest"
   },
   "devDependencies": {

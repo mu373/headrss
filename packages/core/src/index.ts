@@ -6,3 +6,4 @@ export * from "./queries/index.js";
 export * from "./schemas/index.js";
 export * from "./types.js";
 export * from "./url.js";
+export * from "./fetch/index.js";
