@@ -1,0 +1,24 @@
+{
+  "name": "@headrss/cli",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "headrss": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@headrss/core": "workspace:*",
+    "commander": "latest",
+    "fast-xml-parser": "latest",
+    "p-limit": "latest"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
