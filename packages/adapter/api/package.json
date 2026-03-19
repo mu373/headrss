@@ -1,0 +1,17 @@
+{
+  "name": "@headrss/adapter-api",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@headrss/core": "workspace:*",
+    "@hono/zod-openapi": "latest",
+    "hono": "latest",
+    "zod": "latest"
+  }
+}
