@@ -4,7 +4,7 @@ import {
   listSubscriptions,
   markAllRead,
 } from "@headrss/core";
-import type { EntryStore, FeedCredentialStore } from "@headrss/core";
+import type { EntryStore, FeedCredentialStore, OnFeedSubscribed } from "@headrss/core";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
 import type { OpenAPIHono } from "@hono/zod-openapi";
@@ -256,6 +256,7 @@ interface SubscriptionRouteDeps {
   authMiddleware: MiddlewareHandler<NativeApiEnv>;
   store: EntryStore;
   credentialStore: FeedCredentialStore;
+  onFeedSubscribed?: OnFeedSubscribed | undefined;
 }
 
 export function registerSubscriptionRoutes(
@@ -314,6 +315,14 @@ export function registerSubscriptionRoutes(
             authType: "basic",
             credentialsEncrypted: payload.buffer as ArrayBuffer,
           });
+        }
+      }
+
+      if (deps.onFeedSubscribed) {
+        const feed = await deps.store.getFeedByUrl(strippedUrl);
+        if (feed !== null && feed.lastFetchedAt === null && feed.fetchErrorCount === 0) {
+          const promise = deps.onFeedSubscribed({ feedId: feed.id, feedUrl: feed.url });
+          c.executionCtx?.waitUntil?.(promise);
         }
       }
 

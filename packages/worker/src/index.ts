@@ -8,6 +8,7 @@ import { HTTPException } from "hono/http-exception";
 import { adminRoutes, scopedAdminAuth } from "./admin.js";
 import { HmacTokenSigner } from "./auth/hmac-token-signer.js";
 import { LocalAuthProvider } from "./auth/local-auth-provider.js";
+import { fetchFeedOnSubscribe } from "./fetch-on-subscribe.js";
 import { apiKeyAuth, ingestRoutes } from "./ingest.js";
 import type { AppEnv } from "./types.js";
 
@@ -83,8 +84,11 @@ export const createWorkerApp = (env: AppEnv["Bindings"]): Hono<AppEnv> => {
   const clientAuth = new LocalAuthProvider(store);
   const tokenSigner = new HmacTokenSigner(env.TOKEN_KEY);
 
-  const greader = greaderAdapter(store, clientAuth, tokenSigner, credentialStore);
-  const nativeApi = nativeApiAdapter(store, clientAuth, tokenSigner, credentialStore);
+  const onFeedSubscribed = (event: import("@headrss/core").FeedSubscribedEvent) =>
+    fetchFeedOnSubscribe(store, credentialStore, event);
+
+  const greader = greaderAdapter(store, clientAuth, tokenSigner, credentialStore, onFeedSubscribed);
+  const nativeApi = nativeApiAdapter(store, clientAuth, tokenSigner, credentialStore, onFeedSubscribed);
   const ingest = ingestRoutes(store);
   const admin = adminRoutes(store, credentialStore);
   const openApiDocument = resolveOpenApiDocument(nativeApi);

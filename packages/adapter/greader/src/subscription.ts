@@ -4,6 +4,7 @@ import {
   extractFeedCredentials,
   type EntryStore,
   type FeedCredentialStore,
+  type OnFeedSubscribed,
   listSubscriptions,
 } from "@headrss/core";
 import type { Hono } from "hono";
@@ -28,6 +29,7 @@ interface SubscriptionRouteDependencies {
   store: EntryStore;
   tokenSigner: TokenSignerLike<Record<string, unknown>>;
   credentialStore: FeedCredentialStore;
+  onFeedSubscribed?: OnFeedSubscribed | undefined;
 }
 
 export function registerSubscriptionRoutes(
@@ -97,6 +99,14 @@ export function registerSubscriptionRoutes(
           const feed = await deps.store.getFeedByUrl(strippedUrl);
           if (feed !== null) {
             await storeBasicCredentials(deps.credentialStore, feed.id, credentials);
+          }
+        }
+
+        if (deps.onFeedSubscribed) {
+          const feed = await deps.store.getFeedByUrl(strippedUrl);
+          if (feed !== null && feed.lastFetchedAt === null && feed.fetchErrorCount === 0) {
+            const promise = deps.onFeedSubscribed({ feedId: feed.id, feedUrl: feed.url });
+            c.executionCtx?.waitUntil?.(promise);
           }
         }
 
@@ -185,6 +195,14 @@ export function registerSubscriptionRoutes(
         const feed = await deps.store.getFeedByUrl(strippedUrl);
         if (feed !== null) {
           await storeBasicCredentials(deps.credentialStore, feed.id, credentials);
+        }
+      }
+
+      if (deps.onFeedSubscribed) {
+        const feed = await deps.store.getFeedByUrl(strippedUrl);
+        if (feed !== null && feed.lastFetchedAt === null && feed.fetchErrorCount === 0) {
+          const promise = deps.onFeedSubscribed({ feedId: feed.id, feedUrl: feed.url });
+          c.executionCtx?.waitUntil?.(promise);
         }
       }
 

@@ -1,4 +1,4 @@
-import type { AuthProvider, EntryStore, FeedCredentialStore } from "@headrss/core";
+import type { AuthProvider, EntryStore, FeedCredentialStore, OnFeedSubscribed } from "@headrss/core";
 import { OpenAPIHono } from "@hono/zod-openapi";
 
 import { createAuthMiddleware, registerAuthRoutes } from "./auth.js";
@@ -14,6 +14,7 @@ export function nativeApiAdapter(
   auth: AuthProvider,
   tokenSigner: TokenSignerLike,
   credentialStore: FeedCredentialStore,
+  onFeedSubscribed?: OnFeedSubscribed,
 ) {
   const app = new OpenAPIHono<NativeApiEnv>({
     defaultHook: validationHook,
@@ -22,7 +23,7 @@ export function nativeApiAdapter(
 
   installCommonHandlers(app);
   registerAuthRoutes(app, { auth, store, tokenSigner });
-  registerSubscriptionRoutes(app, { authMiddleware, store, credentialStore });
+  registerSubscriptionRoutes(app, { authMiddleware, store, credentialStore, onFeedSubscribed });
   registerFolderRoutes(app, { authMiddleware, store });
   registerEntryRoutes(app, { authMiddleware, store });
 
