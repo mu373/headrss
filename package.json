@@ -1,0 +1,18 @@
+{
+  "name": "headrss",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "typecheck": "pnpm -r run typecheck",
+    "format": "biome format . --write"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@biomejs/biome": "latest",
+    "typescript": "latest",
+    "vitest": "latest"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "incremental": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "moduleDetection": "force",
+    "baseUrl": ".",
+    "paths": {
+      "@headrss/core": ["packages/core/src/index.ts"],
+      "@headrss/core/*": ["packages/core/src/*"],
+      "@headrss/adapter-d1": ["packages/adapter/d1/src/index.ts"],
+      "@headrss/adapter-d1/*": ["packages/adapter/d1/src/*"],
+      "@headrss/adapter-greader": ["packages/adapter/greader/src/index.ts"],
+      "@headrss/adapter-greader/*": ["packages/adapter/greader/src/*"],
+      "@headrss/adapter-api": ["packages/adapter/api/src/index.ts"],
+      "@headrss/adapter-api/*": ["packages/adapter/api/src/*"],
+      "@headrss/worker": ["packages/worker/src/index.ts"],
+      "@headrss/worker/*": ["packages/worker/src/*"],
+      "@headrss/cli": ["packages/cli/src/index.ts"],
+      "@headrss/cli/*": ["packages/cli/src/*"]
+    }
+  }
+}
