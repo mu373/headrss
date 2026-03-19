@@ -583,6 +583,14 @@ export class InMemoryEntryStore {
       .filter((entry): entry is EntryView => entry !== null);
   }
 
+  async getEntriesByNumericIds(userId: number, ids: number[]): Promise<EntryView[]> {
+    return ids
+      .map((id) => this.entries.get(id))
+      .filter((entry): entry is Entry => entry !== undefined)
+      .map((entry) => this.toEntryView(userId, entry))
+      .filter((entry): entry is EntryView => entry !== null);
+  }
+
   async insertEntries(entries: ReadonlyArray<EntryInsertInput>): Promise<IngestResult> {
     this.insertEntriesBatchSizes.push(entries.length);
 

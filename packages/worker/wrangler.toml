@@ -13,5 +13,5 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "headrss"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "1944b5c8-739e-40bc-b79a-188bb8c7b6ec"
 migrations_dir = "../adapter/d1/src/migrations"

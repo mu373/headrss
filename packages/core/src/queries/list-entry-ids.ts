@@ -1,8 +1,9 @@
-import type { EntryStore } from "../ports/entry-store.js";
+import type { EntryReference, EntryStore } from "../ports/entry-store.js";
 import type { ContinuationToken, StreamFilter } from "../types.js";
 
 export interface ListEntryIdsResult {
   ids: string[];
+  entries: EntryReference[];
   continuation?: ContinuationToken;
 }
 
@@ -13,14 +14,9 @@ export async function listEntryIds(
 ): Promise<ListEntryIdsResult> {
   const result = await store.listEntryIds(userId, filter);
 
-  if (result.continuation === undefined) {
-    return {
-      ids: result.items.map((item) => item.publicId),
-    };
-  }
-
   return {
     ids: result.items.map((item) => item.publicId),
-    continuation: result.continuation,
+    entries: result.items,
+    ...(result.continuation !== undefined ? { continuation: result.continuation } : {}),
   };
 }

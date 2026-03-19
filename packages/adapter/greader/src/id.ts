@@ -1,30 +1,31 @@
 export { parseStreamId } from "./stream-id.js";
 
-const textEncoder = new TextEncoder();
-const textDecoder = new TextDecoder();
+const ITEM_ID_PREFIX = "tag:google.com,2005:reader/item/";
 
-export function publicIdToGReaderId(publicId: string): string {
-  return [...textEncoder.encode(publicId)]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
+export function numericIdToGReaderId(id: number): string {
+  return `${ITEM_ID_PREFIX}${id.toString(16).padStart(16, "0")}`;
 }
 
-export function gReaderIdToPublicId(grId: string): string {
-  if (grId.length === 0 || grId.length % 2 !== 0) {
+export function numericIdToGReaderShortId(id: number): string {
+  return String(id);
+}
+
+export function gReaderIdToNumericId(grId: string): number {
+  // Long form: tag:google.com,2005:reader/item/<16-char hex>
+  if (grId.startsWith(ITEM_ID_PREFIX)) {
+    const hex = grId.slice(ITEM_ID_PREFIX.length);
+    const value = Number.parseInt(hex, 16);
+    if (!Number.isNaN(value)) {
+      return value;
+    }
     throw new Error("Invalid Google Reader item ID.");
   }
 
-  const bytes = new Uint8Array(grId.length / 2);
-
-  for (let index = 0; index < grId.length; index += 2) {
-    const value = Number.parseInt(grId.slice(index, index + 2), 16);
-
-    if (Number.isNaN(value)) {
-      throw new Error("Invalid Google Reader item ID.");
-    }
-
-    bytes[index / 2] = value;
+  // Short form: signed decimal number
+  const dec = Number.parseInt(grId, 10);
+  if (!Number.isNaN(dec) && String(dec) === grId) {
+    return dec;
   }
 
-  return textDecoder.decode(bytes);
+  throw new Error("Invalid Google Reader item ID.");
 }

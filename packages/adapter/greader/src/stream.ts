@@ -1,7 +1,6 @@
 import {
   CSRF_TTL,
   editLabel,
-  getEntriesById,
   listEntries,
   listEntryIds,
   markAllRead,
@@ -17,7 +16,7 @@ import {
 import type { Context, Hono } from "hono";
 
 import { requireCsrf } from "./auth.js";
-import { gReaderIdToPublicId, publicIdToGReaderId } from "./id.js";
+import { gReaderIdToNumericId, numericIdToGReaderShortId } from "./id.js";
 import {
   badRequest,
   buildGReaderItem,
@@ -88,7 +87,9 @@ export function registerStreamRoutes(
         badRequest("At least one i parameter is required.");
       }
 
-      const publicIds = ids.map(decodeGReaderId);
+      const numericIds = ids.map(decodeGReaderNumericId);
+      const entries = await deps.store.getEntriesByNumericIds(userId, numericIds);
+      const publicIds = entries.map((e) => e.publicId);
       const read = resolveBooleanTag(addTags, removeTags, READ_STREAM_ID);
       const starred = resolveBooleanTag(addTags, removeTags, STARRED_STREAM_ID);
       const addLabelIds = await resolveLabelIdsForAdd(deps.store, userId, addTags);
@@ -140,30 +141,19 @@ async function handleStreamItemIds(
 ): Promise<Response> {
   const filter = await parseStreamFilter(c);
   const result = await listEntryIds(store, getUserId(c), filter);
-  const entries = result.ids.length === 0
-    ? []
-    : await getEntriesById(store, getUserId(c), result.ids);
   const feeds = await loadFeedsById(
     store,
-    entries.map((entry) => entry.feedId),
+    result.entries.map((entry) => entry.feedId),
   );
-  const entryByPublicId = new Map(entries.map((entry) => [entry.publicId, entry]));
 
   return c.json({
-    itemRefs: result.ids.flatMap((publicId) => {
-      const entry = entryByPublicId.get(publicId);
-
-      if (entry === undefined) {
-        return [];
-      }
-
+    itemRefs: result.entries.map((entry) => {
       const feed = feeds.get(entry.feedId);
-
-      return [{
-        id: publicIdToGReaderId(publicId),
+      return {
+        id: numericIdToGReaderShortId(entry.id),
         directStreamIds: feed ? [toFeedStreamId(feed.url)] : [],
         timestampUsec: String(entry.publishedAt * 1_000_000),
-      }];
+      };
     }),
     ...(result.continuation !== undefined
       ? { continuation: encodeContinuationToken(result.continuation) }
@@ -175,17 +165,20 @@ async function handleStreamItemContents(
   c: Context<GReaderAppEnv>,
   store: EntryStore,
 ): Promise<Response> {
-  const ids = await getParamValues(c, "i");
-  const publicIds = ids.map(decodeGReaderId);
-  const entries = publicIds.length === 0
+  const rawIds = await getParamValues(c, "i");
+  const numericIds = rawIds.map(decodeGReaderNumericId);
+  const entries = numericIds.length === 0
     ? []
-    : await getEntriesById(store, getUserId(c), publicIds);
+    : await store.getEntriesByNumericIds(getUserId(c), numericIds);
   const feeds = await loadFeedsById(
     store,
     entries.map((entry) => entry.feedId),
   );
 
   return c.json({
+    direction: "ltr",
+    id: "user/-/state/com.google/reading-list",
+    updated: Math.floor(Date.now() / 1000),
     items: entries.map((entry) => buildGReaderItem(entry, feeds.get(entry.feedId))),
   });
 }
@@ -246,9 +239,9 @@ function resolveStreamIdFromRequest(
   return suffix === "" ? undefined : suffix;
 }
 
-function decodeGReaderId(grId: string): string {
+function decodeGReaderNumericId(grId: string): number {
   try {
-    return gReaderIdToPublicId(grId);
+    return gReaderIdToNumericId(grId);
   } catch (error) {
     if (error instanceof Error) {
       badRequest(error.message);

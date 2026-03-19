@@ -1,6 +1,7 @@
 import { nativeApiAdapter } from "@headrss/adapter-api";
 import { D1CredentialStore, D1EntryStore } from "@headrss/adapter-d1";
 import { greaderAdapter } from "@headrss/adapter-greader";
+import { swaggerUI } from "@hono/swagger-ui";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 
@@ -94,6 +95,7 @@ export const createWorkerApp = (env: AppEnv["Bindings"]): Hono<AppEnv> => {
 
   app.get("/health", (c) => c.json({ ok: true }));
   app.get("/api/openapi.json", (c) => c.json(openApiDocument));
+  app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }));
 
   app.all("/api/google", () => new Response("Unauthorized", { status: 401 }));
 

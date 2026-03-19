@@ -156,6 +156,7 @@ interface CountRow {
 type StreamScope =
   | { kind: "feed"; feedUrl: string }
   | { kind: "reading-list" }
+  | { kind: "read" }
   | { kind: "starred" }
   | { kind: "label"; labelName: string };
 
@@ -1307,6 +1308,83 @@ export class D1EntryStore implements EntryStore {
       .filter((entry): entry is EntryView => entry !== null);
   }
 
+  public async getEntriesByNumericIds(
+    userId: number,
+    ids: number[],
+  ): Promise<EntryView[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const rows: EntryListRow[] = [];
+    const maxIdsPerQuery = D1_MAX_BOUND_PARAMS - 1;
+
+    for (const group of chunk(ids, maxIdsPerQuery)) {
+      const queryRows = await this.#all<EntryListRow>(
+        `
+          SELECT
+            i.id,
+            i.public_id,
+            i.feed_id,
+            i.guid,
+            i.title,
+            i.url,
+            i.author,
+            i.content,
+            i.summary,
+            i.published_at,
+            i.crawl_time_ms,
+            i.created_at,
+            CASE
+              WHEN st.is_read IS NOT NULL THEN st.is_read
+              WHEN s.read_cursor_item_id IS NOT NULL AND i.id <= s.read_cursor_item_id THEN 1
+              ELSE 0
+            END AS resolved_is_read,
+            st.is_starred,
+            st.starred_at
+          FROM items i
+          LEFT JOIN subscriptions s
+            ON s.feed_id = i.feed_id
+           AND s.user_id = ?
+          LEFT JOIN item_states st
+            ON st.item_id = i.id
+           AND st.user_id = ?
+          WHERE i.id IN (${placeholders(group.length)})
+            AND (s.id IS NOT NULL OR COALESCE(st.is_starred, 0) = 1)
+        `,
+        [userId, userId, ...group],
+      );
+      rows.push(...queryRows);
+    }
+
+    if (rows.length === 0) {
+      return [];
+    }
+
+    const labelsByItemId = await this.#labelsByItemIds(
+      userId,
+      rows.map((row) => row.id),
+    );
+    const rowMap = new Map(
+      rows.map((row) => [
+        row.id,
+        {
+          ...mapEntry(row),
+          state: {
+            isRead: row.resolved_is_read === 1,
+            isStarred: (row.is_starred ?? 0) === 1,
+            starredAt: row.starred_at,
+          },
+          labels: labelsByItemId.get(row.id) ?? [],
+        } satisfies EntryView,
+      ]),
+    );
+
+    return ids
+      .map((id) => rowMap.get(id) ?? null)
+      .filter((entry): entry is EntryView => entry !== null);
+  }
+
   public async insertEntries(
     entries: ReadonlyArray<EntryInsertInput>,
   ): Promise<IngestResult> {
@@ -1962,6 +2040,10 @@ export class D1EntryStore implements EntryStore {
         conditions.push("stream_label.name = ?");
         params.push(scope.labelName);
         break;
+      case "read":
+        joins.push("JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?");
+        params.push(userId);
+        break;
       case "starred":
         joins.push("LEFT JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?");
         params.push(userId);
@@ -1972,6 +2054,10 @@ export class D1EntryStore implements EntryStore {
       "LEFT JOIN item_states st ON st.item_id = i.id AND st.user_id = ?",
     );
     params.push(userId);
+
+    if (scope.kind === "read") {
+      conditions.push(`${resolvedReadSql} = 1`);
+    }
 
     if (scope.kind === "starred") {
       conditions.push("COALESCE(st.is_starred, 0) = 1");
@@ -2072,6 +2158,9 @@ export class D1EntryStore implements EntryStore {
   #parseStreamScope(streamId: string): StreamScope {
     if (streamId === READ_STREAM_ID) {
       return { kind: "reading-list" };
+    }
+    if (streamId === READ_TAG_ID) {
+      return { kind: "read" };
     }
     if (streamId === STARRED_STREAM_ID) {
       return { kind: "starred" };

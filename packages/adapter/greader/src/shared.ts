@@ -16,7 +16,7 @@ import {
 import type { Context } from "hono";
 import type { Hono } from "hono";
 
-import { publicIdToGReaderId } from "./id.js";
+import { numericIdToGReaderId } from "./id.js";
 
 export interface GReaderAppEnv {
   Variables: {
@@ -310,8 +310,13 @@ export function buildGReaderItem(
     ...entry.labels.map((label) => toLabelStreamId(label.name)),
   ];
 
+  const publishedMsec = String(entry.publishedAt * 1000);
+  const publishedUsec = String(entry.publishedAt * 1_000_000);
+
   const item: Record<string, unknown> = {
-    id: publicIdToGReaderId(entry.publicId),
+    id: numericIdToGReaderId(entry.id),
+    crawlTimeMsec: publishedMsec,
+    timestampUsec: publishedUsec,
     categories,
     title: entry.title ?? "",
     published: entry.publishedAt,

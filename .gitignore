@@ -2,6 +2,7 @@ node_modules
 dist
 .wrangler
 .dev.vars
+.env
 *.tsbuildinfo
 .turbo
 plan/
