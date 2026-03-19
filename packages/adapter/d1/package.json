@@ -1,0 +1,17 @@
+{
+  "name": "@headrss/adapter-d1",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@headrss/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest"
+  }
+}
