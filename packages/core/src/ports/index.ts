@@ -6,3 +6,4 @@ export * from "./feed-parser.js";
 export * from "./fetch-transport.js";
 export * from "./ingest-sink.js";
 export * from "./token-signer.js";
+export * from "./on-feed-subscribed.js";
