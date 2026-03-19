@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
+    "types": ["@cloudflare/workers-types"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/__tests__/**/*.ts"],
+  "references": [
+    { "path": "../core" },
+    { "path": "../adapter/d1" },
+    { "path": "../adapter/greader" },
+    { "path": "../adapter/api" }
+  ]
+}

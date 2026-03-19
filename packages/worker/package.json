@@ -1,0 +1,24 @@
+{
+  "name": "@headrss/worker",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@headrss/adapter-api": "workspace:*",
+    "@headrss/adapter-d1": "workspace:*",
+    "@headrss/adapter-greader": "workspace:*",
+    "@headrss/core": "workspace:*",
+    "@hono/zod-openapi": "latest",
+    "hono": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "latest",
+    "wrangler": "latest"
+  }
+}
