@@ -1,9 +1,10 @@
 import {
   editSubscription,
+  extractFeedCredentials,
   listSubscriptions,
   markAllRead,
 } from "@headrss/core";
-import type { EntryStore } from "@headrss/core";
+import type { EntryStore, FeedCredentialStore } from "@headrss/core";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
 import type { OpenAPIHono } from "@hono/zod-openapi";
@@ -254,6 +255,7 @@ const markAllReadRoute = createRoute({
 interface SubscriptionRouteDeps {
   authMiddleware: MiddlewareHandler<NativeApiEnv>;
   store: EntryStore;
+  credentialStore: FeedCredentialStore;
 }
 
 export function registerSubscriptionRoutes(
@@ -287,6 +289,7 @@ export function registerSubscriptionRoutes(
     async (c: any) => {
       const userId = c.get("userId");
       const body = c.req.valid("json" as never) as z.output<typeof createSubscriptionBodySchema>;
+      const { url: strippedUrl, credentials } = extractFeedCredentials(body.url);
       const labelIds = body.folder === undefined
         ? undefined
         : body.folder === null
@@ -295,13 +298,26 @@ export function registerSubscriptionRoutes(
 
       await editSubscription(deps.store, {
         action: "subscribe",
-        feedUrl: body.url,
+        feedUrl: strippedUrl,
         userId,
         ...(body.title !== undefined ? { customTitle: body.title } : {}),
         ...(labelIds !== undefined ? { labelIds } : {}),
       });
 
-      const subscription = await loadSubscriptionViewByFeedUrl(deps.store, userId, body.url);
+      if (credentials !== null) {
+        const feed = await deps.store.getFeedByUrl(strippedUrl);
+        if (feed !== null) {
+          const payload = new TextEncoder().encode(
+            JSON.stringify({ username: credentials.username, password: credentials.password }),
+          );
+          await deps.credentialStore.set(feed.id, {
+            authType: "basic",
+            credentialsEncrypted: payload.buffer as ArrayBuffer,
+          });
+        }
+      }
+
+      const subscription = await loadSubscriptionViewByFeedUrl(deps.store, userId, strippedUrl);
 
       return c.json(toNativeSubscription(subscription), 200);
     },

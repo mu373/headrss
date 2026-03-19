@@ -232,11 +232,26 @@ async function parseStreamFilter(
   };
 }
 
+const STREAM_CONTENTS_PREFIX = "/reader/api/0/stream/contents/";
+
 function resolveStreamIdFromRequest(
   c: Context<GReaderAppEnv>,
 ): string | undefined {
   const suffix = c.req.param("*");
-  return suffix === "" ? undefined : suffix;
+  if (suffix !== undefined && suffix !== "") {
+    return decodeURIComponent(suffix);
+  }
+
+  const path = c.req.path;
+  const idx = path.indexOf(STREAM_CONTENTS_PREFIX);
+  if (idx !== -1) {
+    const raw = path.slice(idx + STREAM_CONTENTS_PREFIX.length);
+    if (raw.length > 0) {
+      return decodeURIComponent(raw);
+    }
+  }
+
+  return undefined;
 }
 
 function decodeGReaderNumericId(grId: string): number {

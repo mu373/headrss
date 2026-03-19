@@ -1240,7 +1240,8 @@ export class D1EntryStore implements EntryStore {
     }
 
     const rows: EntryListRow[] = [];
-    const maxIdsPerQuery = D1_MAX_BOUND_PARAMS - 1;
+    // 2 bound params for userId in the query, rest for the IN list
+    const maxIdsPerQuery = D1_MAX_BOUND_PARAMS - 2;
 
     for (const group of chunk(publicIds, maxIdsPerQuery)) {
       const queryRows = await this.#all<EntryListRow>(
@@ -1317,7 +1318,8 @@ export class D1EntryStore implements EntryStore {
     }
 
     const rows: EntryListRow[] = [];
-    const maxIdsPerQuery = D1_MAX_BOUND_PARAMS - 1;
+    // 2 bound params for userId in the query, rest for the IN list
+    const maxIdsPerQuery = D1_MAX_BOUND_PARAMS - 2;
 
     for (const group of chunk(ids, maxIdsPerQuery)) {
       const queryRows = await this.#all<EntryListRow>(

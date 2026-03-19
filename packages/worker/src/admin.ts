@@ -8,6 +8,7 @@ import type {
   User,
 } from "@headrss/core";
 import {
+  extractFeedCredentials,
   MAX_OPML_FEEDS,
   OPML_BATCH_SIZE,
   RATE_LIMIT_WINDOW_SECONDS,
@@ -979,12 +980,23 @@ export const adminRoutes = (
     for (const [batchIndex, batch] of batches.entries()) {
       try {
         for (const feedInput of batch) {
+          const { url: strippedUrl, credentials } = extractFeedCredentials(feedInput.url);
           const feed = await store.upsertFeed({
-            url: feedInput.url,
+            url: strippedUrl,
             title: feedInput.title,
             siteUrl: feedInput.siteUrl,
             updatedAt: nowSeconds(),
           });
+
+          if (credentials !== null) {
+            const payload = new TextEncoder().encode(
+              JSON.stringify({ username: credentials.username, password: credentials.password }),
+            );
+            await credStore.set(feed.id, {
+              authType: "basic",
+              credentialsEncrypted: payload.buffer as ArrayBuffer,
+            });
+          }
 
           const existingSubscription = await store.getSubscriptionByUserAndFeed(
             body.user_id,

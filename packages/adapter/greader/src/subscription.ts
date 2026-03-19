@@ -1,7 +1,9 @@
 import {
   editLabel,
   editSubscription,
+  extractFeedCredentials,
   type EntryStore,
+  type FeedCredentialStore,
   listSubscriptions,
 } from "@headrss/core";
 import type { Hono } from "hono";
@@ -25,6 +27,7 @@ import type { TokenSignerLike } from "./token-signer.js";
 interface SubscriptionRouteDependencies {
   store: EntryStore;
   tokenSigner: TokenSignerLike<Record<string, unknown>>;
+  credentialStore: FeedCredentialStore;
 }
 
 export function registerSubscriptionRoutes(
@@ -69,9 +72,10 @@ export function registerSubscriptionRoutes(
       const removeTags = await getParamValues(c, "r");
 
       if (action === "subscribe") {
+        const { url: strippedUrl, credentials } = extractFeedCredentials(feedUrl);
         const subscription = await deps.store.getSubscriptionByUserAndFeed(
           userId,
-          (await ensureFeedId(deps.store, feedUrl)) ?? -1,
+          (await ensureFeedId(deps.store, strippedUrl)) ?? -1,
         );
         const labelIds = await resolveNextSubscriptionLabelIds(
           deps.store,
@@ -84,10 +88,17 @@ export function registerSubscriptionRoutes(
         await editSubscription(deps.store, {
           action: "subscribe",
           userId,
-          feedUrl,
+          feedUrl: strippedUrl,
           ...(title !== undefined ? { customTitle: title } : {}),
           ...(labelIds !== undefined ? { labelIds } : {}),
         });
+
+        if (credentials !== null) {
+          const feed = await deps.store.getFeedByUrl(strippedUrl);
+          if (feed !== null) {
+            await storeBasicCredentials(deps.credentialStore, feed.id, credentials);
+          }
+        }
 
         return c.text("OK");
       }
@@ -162,17 +173,26 @@ export function registerSubscriptionRoutes(
         badRequest("quickadd is required.");
       }
 
+      const { url: strippedUrl, credentials } = extractFeedCredentials(query);
+
       await editSubscription(deps.store, {
         action: "subscribe",
         userId,
-        feedUrl: query,
+        feedUrl: strippedUrl,
       });
+
+      if (credentials !== null) {
+        const feed = await deps.store.getFeedByUrl(strippedUrl);
+        if (feed !== null) {
+          await storeBasicCredentials(deps.credentialStore, feed.id, credentials);
+        }
+      }
 
       return c.json({
         query,
         numResults: 1,
-        streamId: toFeedStreamId(query),
-        streamName: query,
+        streamId: toFeedStreamId(strippedUrl),
+        streamName: strippedUrl,
       });
     },
   );
@@ -310,6 +330,20 @@ async function ensureFeedId(
   feedUrl: string,
 ): Promise<number | undefined> {
   return (await store.getFeedByUrl(feedUrl))?.id;
+}
+
+async function storeBasicCredentials(
+  credentialStore: FeedCredentialStore,
+  feedId: number,
+  credentials: { username: string; password: string },
+): Promise<void> {
+  const payload = new TextEncoder().encode(
+    JSON.stringify({ username: credentials.username, password: credentials.password }),
+  );
+  await credentialStore.set(feedId, {
+    authType: "basic",
+    credentialsEncrypted: payload.buffer as ArrayBuffer,
+  });
 }
 
 function escapeXml(value: string): string {

@@ -27,5 +27,13 @@ export function gReaderIdToNumericId(grId: string): number {
     return dec;
   }
 
+  // Bare hex (e.g. "000000000000009f") — sent by Reeder
+  if (/^[0-9a-fA-F]+$/.test(grId)) {
+    const value = Number.parseInt(grId, 16);
+    if (!Number.isNaN(value)) {
+      return value;
+    }
+  }
+
   throw new Error("Invalid Google Reader item ID.");
 }
