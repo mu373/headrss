@@ -20,8 +20,15 @@ const SAFE_CROSS_ORIGIN_HEADERS = new Set([
 export class HttpFetchTransport implements FetchTransport {
   async fetch(url: string, options: TransportOptions): Promise<HttpTransportResult> {
     let headers = new Headers(options.headers);
+    const parsed = new URL(url);
+    if (parsed.username) {
+      const credentials = btoa(`${decodeURIComponent(parsed.username)}:${decodeURIComponent(parsed.password)}`);
+      headers.set("Authorization", `Basic ${credentials}`);
+      parsed.username = "";
+      parsed.password = "";
+    }
     const redirectChain: string[] = [];
-    let currentUrl = url;
+    let currentUrl = parsed.toString();
     let redirectedPermanently = false;
 
     for (let redirectCount = 0; redirectCount <= options.maxRedirects; redirectCount += 1) {
