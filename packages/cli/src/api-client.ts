@@ -263,6 +263,15 @@ export class HeadrssApiClient {
     });
   }
 
+  async renameFolder(token: string, id: number, name: string): Promise<NativeLabel> {
+    return this.request({
+      auth: { kind: "native", token },
+      body: { name },
+      method: "PUT",
+      path: `/api/native/v0/folders/${id}`,
+    });
+  }
+
   async listUsers(apiKey: string): Promise<AdminUser[]> {
     return this.listAllPages<AdminUser>({
       auth: { kind: "admin", apiKey },
