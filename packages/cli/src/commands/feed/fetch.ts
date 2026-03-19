@@ -37,21 +37,33 @@ export function registerFeedFetchCommand(
   parent
     .command("fetch")
     .option("--dry-run", "Show due feeds without fetching them")
+    .option("--feed-id <ids...>", "Force-fetch specific feed IDs (bypasses due check)")
     .description("Fetch due feeds")
-    .action(async (options: { dryRun?: boolean }) => {
-      await runFeedFetchCommand(client, Boolean(options.dryRun));
+    .action(async (options: { dryRun?: boolean; feedId?: string[] }) => {
+      await runFeedFetchCommand(client, Boolean(options.dryRun), options.feedId?.map(Number));
     });
 }
 
 export async function runFeedFetchCommand(
   client: HeadrssApiClient,
   dryRun: boolean,
+  feedIds?: number[],
 ): Promise<void> {
   const logger = createLogger();
   const fetchApiKey = requireEnv("FETCH_API_KEY");
-  const dueFeeds = (await client.listDueFeeds(fetchApiKey))
-    .filter(isEligibleFeed)
-    .sort((left, right) => left.url.localeCompare(right.url));
+
+  let dueFeeds: AdminFeed[];
+
+  if (feedIds !== undefined && feedIds.length > 0) {
+    const allFeeds = await client.listFeeds(requireEnv("ADMIN_API_KEY"));
+    dueFeeds = allFeeds
+      .filter((feed) => feedIds.includes(feed.id))
+      .sort((left, right) => left.url.localeCompare(right.url));
+  } else {
+    dueFeeds = (await client.listDueFeeds(fetchApiKey))
+      .filter(isEligibleFeed)
+      .sort((left, right) => left.url.localeCompare(right.url));
+  }
 
   if (dryRun) {
     printJson(dueFeeds);
