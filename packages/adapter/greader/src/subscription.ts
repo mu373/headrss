@@ -360,7 +360,7 @@ async function storeBasicCredentials(
   );
   await credentialStore.set(feedId, {
     authType: "basic",
-    credentialsEncrypted: payload.buffer as ArrayBuffer,
+    credentialsEncrypted: payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength),
   });
 }
 

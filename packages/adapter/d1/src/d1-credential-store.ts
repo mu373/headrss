@@ -10,21 +10,18 @@ interface FeedCredentialRow {
 
 const nowSeconds = (): number => Math.floor(Date.now() / 1000);
 
-const toArrayBuffer = (value: ArrayBuffer | Uint8Array): ArrayBuffer => {
-  if (value instanceof ArrayBuffer) {
-    return value.slice(0);
+const toUint8Array = (value: ArrayBuffer | Uint8Array): Uint8Array => {
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
   }
-
-  const bytes = new Uint8Array(value.byteLength);
-  bytes.set(value);
-  return bytes.buffer;
+  return new Uint8Array(value);
 };
 
-const concatBuffers = (first: Uint8Array, second: Uint8Array): ArrayBuffer => {
+const concatBuffers = (first: Uint8Array, second: Uint8Array): Uint8Array => {
   const merged = new Uint8Array(first.byteLength + second.byteLength);
   merged.set(first, 0);
   merged.set(second, first.byteLength);
-  return merged.buffer;
+  return merged;
 };
 
 export class D1CredentialStore implements FeedCredentialStore {
@@ -63,7 +60,7 @@ export class D1CredentialStore implements FeedCredentialStore {
       feedId: row.feed_id,
       authType: row.auth_type,
       credentialsEncrypted: await this.#decrypt(
-        toArrayBuffer(row.credentials_encrypted),
+        toUint8Array(row.credentials_encrypted),
       ),
       createdAt: row.created_at,
     };
@@ -121,7 +118,7 @@ export class D1CredentialStore implements FeedCredentialStore {
     );
   }
 
-  async #encrypt(plaintext: ArrayBuffer): Promise<ArrayBuffer> {
+  async #encrypt(plaintext: ArrayBuffer): Promise<Uint8Array> {
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const key = await this.#keyPromise;
     const ciphertext = await crypto.subtle.encrypt(
@@ -132,8 +129,8 @@ export class D1CredentialStore implements FeedCredentialStore {
     return concatBuffers(iv, new Uint8Array(ciphertext));
   }
 
-  async #decrypt(payload: ArrayBuffer): Promise<ArrayBuffer> {
-    const bytes = new Uint8Array(payload);
+  async #decrypt(payload: Uint8Array): Promise<ArrayBuffer> {
+    const bytes = payload;
     if (bytes.byteLength < 13) {
       throw new Error("Stored credential payload is invalid.");
     }

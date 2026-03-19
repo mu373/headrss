@@ -313,7 +313,7 @@ export function registerSubscriptionRoutes(
           );
           await deps.credentialStore.set(feed.id, {
             authType: "basic",
-            credentialsEncrypted: payload.buffer as ArrayBuffer,
+            credentialsEncrypted: payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength),
           });
         }
       }

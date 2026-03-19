@@ -989,12 +989,13 @@ export const adminRoutes = (
           });
 
           if (credentials !== null) {
-            const payload = new TextEncoder().encode(
+            const encoded = new TextEncoder().encode(
               JSON.stringify({ username: credentials.username, password: credentials.password }),
             );
+            const plaintext = new Uint8Array(encoded);
             await credStore.set(feed.id, {
               authType: "basic",
-              credentialsEncrypted: payload.buffer as ArrayBuffer,
+              credentialsEncrypted: plaintext.buffer,
             });
           }
 
