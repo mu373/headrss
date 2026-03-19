@@ -83,8 +83,8 @@ export const createWorkerApp = (env: AppEnv["Bindings"]): Hono<AppEnv> => {
   const clientAuth = new LocalAuthProvider(store);
   const tokenSigner = new HmacTokenSigner(env.TOKEN_KEY);
 
-  const greader = greaderAdapter(store, clientAuth, tokenSigner);
-  const nativeApi = nativeApiAdapter(store, clientAuth, tokenSigner);
+  const greader = greaderAdapter(store, clientAuth, tokenSigner, credentialStore);
+  const nativeApi = nativeApiAdapter(store, clientAuth, tokenSigner, credentialStore);
   const ingest = ingestRoutes(store);
   const admin = adminRoutes(store, credentialStore);
   const openApiDocument = resolveOpenApiDocument(nativeApi);

@@ -1,4 +1,4 @@
-import type { AuthProvider, EntryStore } from "@headrss/core";
+import type { AuthProvider, EntryStore, FeedCredentialStore } from "@headrss/core";
 import { Hono } from "hono";
 
 import { registerAuthRoutes, requireAuth } from "./auth.js";
@@ -14,6 +14,7 @@ export function greaderAdapter(
   store: EntryStore,
   auth: AuthProvider,
   tokenSigner: TokenSignerLike<Record<string, unknown>>,
+  credentialStore: FeedCredentialStore,
 ): Hono<GReaderAppEnv> {
   const app = new Hono<GReaderAppEnv>();
 
@@ -24,7 +25,7 @@ export function greaderAdapter(
   app.use("/reader/api/0/*", requireAuth(auth, tokenSigner));
 
   registerUserRoutes(app, { store });
-  registerSubscriptionRoutes(app, { store, tokenSigner });
+  registerSubscriptionRoutes(app, { store, tokenSigner, credentialStore });
   registerStreamRoutes(app, { store, tokenSigner });
   registerTagRoutes(app, { store, tokenSigner });
   registerUnreadRoutes(app, { store });
