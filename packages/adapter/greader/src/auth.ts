@@ -5,7 +5,7 @@ import {
   type AuthProvider,
   type EntryStore,
 } from "@headrss/core";
-import type { Hono, MiddlewareHandler } from "hono";
+import type { Context, Hono, MiddlewareHandler } from "hono";
 
 import {
   badRequest,
@@ -41,25 +41,25 @@ export function requireAuth(
     const authorization = c.req.header("authorization");
 
     if (authorization === undefined) {
-      return c.text("Unauthorized", 401);
+      return unauthorizedBadToken(c);
     }
 
     const match = authorization.match(/^GoogleLogin auth=(.+)$/i);
 
     if (match === null) {
-      return c.text("Unauthorized", 401);
+      return unauthorizedBadToken(c);
     }
 
     const token = match[1];
 
     if (token === undefined) {
-      return c.text("Unauthorized", 401);
+      return unauthorizedBadToken(c);
     }
 
     const payload = parseAuthToken(await tokenSigner.verify(token));
 
     if (payload === null) {
-      return c.text("Unauthorized", 401);
+      return unauthorizedBadToken(c);
     }
 
     const passwordVersionValid = await auth.validatePasswordVersion(
@@ -69,7 +69,7 @@ export function requireAuth(
     );
 
     if (!passwordVersionValid) {
-      return c.text("Unauthorized", 401);
+      return unauthorizedBadToken(c);
     }
 
     c.set("userId", payload.userId);
@@ -195,6 +195,10 @@ function parseCsrfToken(
     kind: "csrf",
     userId,
   };
+}
+
+function unauthorizedBadToken(c: Context) {
+  return c.text("Unauthorized", 401, { "Google-Bad-Token": "true" });
 }
 
 function asInteger(value: unknown): number | null {
