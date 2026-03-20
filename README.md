@@ -12,17 +12,19 @@ Headless Google Reader-compatible RSS sync service on Cloudflare Workers + D1.
 
 ```
 ┌─────────────────────────────────┐     ┌──────────────────────────────────────┐
-│  Your server (CLI)              │     │  Cloudflare (Worker + D1)            │
+│  Server                         │     │  Cloudflare (Worker + D1)            │
 │                                 │     │                                      │
-│  cron → headrss feed fetch      │     │  /api/google/*  ← RSS clients        │
-│    ├─ GET  /admin/feeds ────────┼────▶│  /api/native/*  ← web frontend       │
+│  CLI (headrss):                 │     │  API endpoints:                      │
+│  headrss feed fetch             │     │  /api/google/*  ← RSS clients        │
+│    ├─ GET  /admin/feeds    ─────┼────▶│  /api/native/*  ← web frontend       │
 │    ├─ fetch RSS/Atom feeds      │     │  /ingest/*      ← fetcher push       │
-│    └─ POST /ingest/items ───────┼────▶│  /admin/*       ← admin/fetcher      │
+│    └─ POST /ingest/items   ─────┼────▶│  /admin/*       ← admin/fetcher      │
 │                                 │     │         │                            │
-│  cron → headrss feed purge ─────┼────▶│         ▼                            │
+│  headrss feed purge        ─────┼────▶│         ▼                            │
 │                                 │     │        D1 (SQLite)                   │
 │  headrss admin user/feed/opml   │     │                                      │
 │  headrss subscription/folder    │     │                                      │
+│                                 │     │                                      │
 └─────────────────────────────────┘     └──────────────────────────────────────┘
 ```
 
