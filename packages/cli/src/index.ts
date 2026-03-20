@@ -22,6 +22,7 @@ import { registerFolderCommands } from "./commands/folder/index.js";
 import { registerSubscriptionCommands } from "./commands/subscription/index.js";
 import { createLogger } from "./log.js";
 import { toErrorMessage } from "./utils.js";
+import { VERSION } from "./version.js";
 
 const program = new Command();
 const client = new HeadrssApiClient();
@@ -29,6 +30,7 @@ const client = new HeadrssApiClient();
 program
   .name("headrss")
   .description("HeadRSS CLI")
+  .version(VERSION)
   .option("--env <name>", "Environment profile name")
   .showHelpAfterError();
 
