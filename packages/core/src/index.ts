@@ -1,6 +1,8 @@
 export * from "./commands/index.js";
 export * from "./constants.js";
 export * from "./id.js";
+export { chunkArray } from "./internal/chunk.js";
+export * from "./opml.js";
 export * from "./ports/index.js";
 export * from "./queries/index.js";
 export * from "./schemas/index.js";

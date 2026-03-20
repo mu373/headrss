@@ -1,8 +1,16 @@
 import {
+  buildOpml,
+  chunkArray,
+  editLabel,
   editSubscription,
   extractFeedCredentials,
+  groupImportedFeeds,
   listSubscriptions,
   markAllRead,
+  MAX_OPML_FEEDS,
+  OpmlParseError,
+  OPML_BATCH_SIZE,
+  parseOpml,
 } from "@headrss/core";
 import type { EntryStore, FeedCredentialStore, OnFeedSubscribed } from "@headrss/core";
 import { createRoute, z } from "@hono/zod-openapi";
@@ -265,6 +273,109 @@ export function registerSubscriptionRoutes(
 ): void {
   const openapi = app.openapi.bind(app) as any;
 
+  app.get("/subscriptions/export", deps.authMiddleware, async (c) => {
+    const userId = c.get("userId");
+    const user = await deps.store.getUserById(userId);
+
+    if (user === null) {
+      throw new ApiError(404, "not_found", `User ${userId} was not found.`);
+    }
+
+    const subscriptions = await deps.store.listSubscriptionsByUserId(userId);
+
+    return c.body(buildOpml(user, subscriptions), 200, {
+      "content-disposition": 'attachment; filename="headrss-subscriptions.opml"',
+      "content-type": "text/x-opml; charset=utf-8",
+    });
+  });
+
+  app.post("/subscriptions/import", deps.authMiddleware, async (c) => {
+    const userId = c.get("userId");
+    const opml = await c.req.text();
+
+    let feeds: ReturnType<typeof groupImportedFeeds>;
+    try {
+      feeds = groupImportedFeeds(parseOpml(opml));
+    } catch (error) {
+      if (error instanceof OpmlParseError) {
+        throw new ApiError(400, "invalid_opml", error.message);
+      }
+
+      throw error;
+    }
+
+    if (feeds.length > MAX_OPML_FEEDS) {
+      throw new ApiError(
+        400,
+        "invalid_request",
+        `OPML import exceeds the ${MAX_OPML_FEEDS} feed limit.`,
+      );
+    }
+
+    const labelByName = new Map<string, number>();
+    const labelNames = [...new Set(feeds.flatMap((feed) => feed.labelNames))].sort();
+
+    for (const labelName of labelNames) {
+      const label = await editLabel(deps.store, {
+        action: "create",
+        userId,
+        name: labelName,
+      });
+      if (label === null) {
+        throw new ApiError(500, "internal_error", "Label was not created during OPML import.");
+      }
+      labelByName.set(labelName, label.id);
+    }
+
+    let imported = 0;
+
+    for (const batch of chunkArray(feeds, OPML_BATCH_SIZE)) {
+      for (const feedInput of batch) {
+        const { url: strippedUrl, credentials } = extractFeedCredentials(feedInput.url);
+        const hadExistingFeed = (await deps.store.getFeedByUrl(strippedUrl)) !== null;
+
+        await editSubscription(deps.store, {
+          action: "subscribe",
+          feedUrl: strippedUrl,
+          userId,
+        });
+
+        const feed = await deps.store.getFeedByUrl(strippedUrl);
+        const existingSub = feed
+          ? await deps.store.getSubscriptionByUserAndFeed(userId, feed.id)
+          : null;
+
+        if (feed === null || existingSub === null) {
+          throw new ApiError(500, "internal_error", "Subscription was not found after import.");
+        }
+
+        if (credentials !== null) {
+          await storeBasicCredentials(deps.credentialStore, feed.id, credentials);
+        }
+
+        const labelIds = new Set(
+          (await deps.store.listSubscriptionLabels(existingSub.id)).map((label) => label.id),
+        );
+        for (const labelName of feedInput.labelNames) {
+          const labelId = labelByName.get(labelName);
+          if (labelId !== undefined) {
+            labelIds.add(labelId);
+          }
+        }
+        await deps.store.replaceSubscriptionLabels(existingSub.id, [...labelIds]);
+
+        if (!hadExistingFeed && deps.onFeedSubscribed) {
+          const promise = deps.onFeedSubscribed({ feedId: feed.id, feedUrl: feed.url });
+          c.executionCtx?.waitUntil?.(promise);
+        }
+
+        imported += 1;
+      }
+    }
+
+    return c.json({ imported, total: feeds.length }, 200);
+  });
+
   openapi(
     {
       ...listSubscriptionsRoute,
@@ -308,13 +419,7 @@ export function registerSubscriptionRoutes(
       if (credentials !== null) {
         const feed = await deps.store.getFeedByUrl(strippedUrl);
         if (feed !== null) {
-          const payload = new TextEncoder().encode(
-            JSON.stringify({ username: credentials.username, password: credentials.password }),
-          );
-          await deps.credentialStore.set(feed.id, {
-            authType: "basic",
-            credentialsEncrypted: payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength),
-          });
+          await storeBasicCredentials(deps.credentialStore, feed.id, credentials);
         }
       }
 
@@ -469,4 +574,24 @@ async function loadSubscriptionViewById(
   }
 
   return subscription;
+}
+
+async function storeBasicCredentials(
+  credentialStore: FeedCredentialStore,
+  feedId: number,
+  credentials: {
+    username: string;
+    password: string;
+  },
+): Promise<void> {
+  const payload = new TextEncoder().encode(
+    JSON.stringify({ username: credentials.username, password: credentials.password }),
+  );
+  await credentialStore.set(feedId, {
+    authType: "basic",
+    credentialsEncrypted: payload.buffer.slice(
+      payload.byteOffset,
+      payload.byteOffset + payload.byteLength,
+    ),
+  });
 }

@@ -157,6 +157,43 @@ export class HeadrssApiClient {
     });
   }
 
+  async importOpmlNative(
+    token: string,
+    opml: string,
+  ): Promise<{ imported: number; total: number }> {
+    const headers = new Headers();
+    headers.set("Authorization", `Bearer ${token}`);
+    headers.set("Content-Type", "text/xml");
+    const response = await fetch(new URL("/api/native/v0/subscriptions/import", this.baseUrl), {
+      body: opml,
+      headers,
+      method: "POST",
+    });
+    const parsedBody = await parseResponseBody(response);
+    if (response.status !== 200) {
+      throw new ApiClientError(
+        response.status,
+        getErrorMessage(parsedBody, response),
+        parsedBody,
+      );
+    }
+    return parsedBody as { imported: number; total: number };
+  }
+
+  async exportOpmlNative(token: string): Promise<string> {
+    const headers = new Headers();
+    headers.set("Authorization", `Bearer ${token}`);
+    const response = await fetch(new URL("/api/native/v0/subscriptions/export", this.baseUrl), {
+      headers,
+      method: "GET",
+    });
+    if (response.status !== 200) {
+      const body = await response.text();
+      throw new ApiClientError(response.status, body, body);
+    }
+    return response.text();
+  }
+
   async addSubscription(
     token: string,
     input: {

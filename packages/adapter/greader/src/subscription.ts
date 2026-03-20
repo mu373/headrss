@@ -1,6 +1,7 @@
 import {
   editLabel,
   editSubscription,
+  escapeXml,
   extractFeedCredentials,
   type EntryStore,
   type FeedCredentialStore,
@@ -362,13 +363,4 @@ async function storeBasicCredentials(
     authType: "basic",
     credentialsEncrypted: payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength),
   });
-}
-
-function escapeXml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&apos;");
 }
