@@ -1,11 +1,11 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
 import { HeadrssApiClient, ApiClientError } from "./api-client.js";
 import { getEnv } from "./config.js";
+import { getEnvironmentName, getLegacyTokenCachePath, getTokenCachePath } from "./profile.js";
 
 interface CachedToken {
   expiresAt: number;
@@ -13,7 +13,6 @@ interface CachedToken {
   username: string;
 }
 
-const TOKEN_CACHE_PATH = join(homedir(), ".config", "headrss", "token.json");
 const TOKEN_EXPIRY_SKEW_SECONDS = 30;
 
 export async function loginAndCache(
@@ -66,28 +65,28 @@ export async function withNativeToken<T>(
 }
 
 export async function clearCachedToken(): Promise<void> {
-  await rm(TOKEN_CACHE_PATH, { force: true });
+  await rm(getTokenCachePath(), { force: true });
 }
 
 export async function readCachedToken(): Promise<CachedToken | null> {
   try {
-    const raw = await readFile(TOKEN_CACHE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Partial<CachedToken>;
-
+    return await readCachedTokenFromPath(getTokenCachePath());
+  } catch (error) {
     if (
-      typeof parsed.token !== "string" ||
-      typeof parsed.username !== "string" ||
-      typeof parsed.expiresAt !== "number"
+      (error as NodeJS.ErrnoException).code === "ENOENT" &&
+      getEnvironmentName() === "default"
     ) {
-      return null;
+      try {
+        return await readCachedTokenFromPath(getLegacyTokenCachePath());
+      } catch (legacyError) {
+        if ((legacyError as NodeJS.ErrnoException).code === "ENOENT") {
+          return null;
+        }
+
+        throw legacyError;
+      }
     }
 
-    return {
-      expiresAt: parsed.expiresAt,
-      token: parsed.token,
-      username: parsed.username,
-    };
-  } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return null;
     }
@@ -97,12 +96,32 @@ export async function readCachedToken(): Promise<CachedToken | null> {
 }
 
 export async function writeCachedToken(token: CachedToken): Promise<void> {
-  await mkdir(dirname(TOKEN_CACHE_PATH), { recursive: true });
-  await writeFile(TOKEN_CACHE_PATH, `${JSON.stringify(token, null, 2)}\n`, "utf8");
+  const tokenCachePath = getTokenCachePath();
+  await mkdir(dirname(tokenCachePath), { recursive: true });
+  await writeFile(tokenCachePath, `${JSON.stringify(token, null, 2)}\n`, "utf8");
 }
 
 export function isTokenValid(token: CachedToken, now = Math.floor(Date.now() / 1000)): boolean {
   return token.expiresAt > now + TOKEN_EXPIRY_SKEW_SECONDS;
+}
+
+async function readCachedTokenFromPath(path: string): Promise<CachedToken | null> {
+  const raw = await readFile(path, "utf8");
+  const parsed = JSON.parse(raw) as Partial<CachedToken>;
+
+  if (
+    typeof parsed.token !== "string" ||
+    typeof parsed.username !== "string" ||
+    typeof parsed.expiresAt !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    expiresAt: parsed.expiresAt,
+    token: parsed.token,
+    username: parsed.username,
+  };
 }
 
 async function resolveCredentials(): Promise<{

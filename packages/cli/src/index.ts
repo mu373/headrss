@@ -1,5 +1,14 @@
 #!/usr/bin/env bun
 
+import { loadEnvFile } from "./env.js";
+import { initProfile } from "./profile.js";
+
+const earlyEnvName = parseEarlyEnvironmentName(process.argv);
+
+initProfile(earlyEnvName);
+
+loadEnvFile();
+
 import { Command } from "commander";
 
 import { HeadrssApiClient } from "./api-client.js";
@@ -20,6 +29,7 @@ const client = new HeadrssApiClient();
 program
   .name("headrss")
   .description("HeadRSS CLI")
+  .option("--env <name>", "Environment profile name")
   .showHelpAfterError();
 
 program
@@ -45,4 +55,28 @@ try {
   const logger = createLogger();
   logger.error(toErrorMessage(error));
   process.exitCode = 1;
+}
+
+function parseEarlyEnvironmentName(argv: string[]): string | undefined {
+  const envFlagIndex = argv.indexOf("--env");
+  if (envFlagIndex !== -1) {
+    const value = argv[envFlagIndex + 1];
+    if (value === undefined || value.startsWith("-")) {
+      throw new Error("Missing value for --env.");
+    }
+
+    return value;
+  }
+
+  const envArg = argv.find((arg) => arg.startsWith("--env="));
+  if (envArg !== undefined) {
+    const value = envArg.slice("--env=".length);
+    if (value.length === 0) {
+      throw new Error("Missing value for --env.");
+    }
+
+    return value;
+  }
+
+  return undefined;
 }
