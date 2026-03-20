@@ -1,6 +1,6 @@
 # HeadRSS
 
-Headless Google Reader-compatible RSS sync service on Cloudflare Workers + D1.
+Headless is a Google Reader-compatible RSS sync service on Cloudflare Workers + D1.
 
 - Serves [Google Reader API](https://rss-sync.github.io/Open-Reader-API/spec/) to RSS clients (Reeder, NetNewsWire, etc.)
 - Separate architecture for feed fetcher and server. The API deployed on Cloudflare receives feed data pushed from an external fetcher.
@@ -131,8 +131,11 @@ headrss login
 ### Import feeds
 
 ```bash
-# Import from OPML file
-headrss admin opml import subscriptions.opml --user <userId>
+# Import from OPML file (as logged-in user)
+headrss subscription import subscriptions.opml
+
+# Export subscriptions as OPML
+headrss subscription export -o subscriptions.opml
 
 # Or add individually
 headrss subscription add https://example.com/feed.xml
@@ -165,6 +168,8 @@ headrss feed purge
 headrss subscription list
 headrss subscription add <url>
 headrss subscription rm <id>
+headrss subscription import <file>
+headrss subscription export [-o <file>]
 
 headrss folder list
 headrss folder add <name>
