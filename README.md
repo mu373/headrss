@@ -2,8 +2,9 @@
 
 Headless Google Reader-compatible RSS sync service on Cloudflare Workers + D1.
 
-- Serves [Google Reader API](https://rss-sync.github.io/Open-Reader-API/spec/) to RSS clients (Reeder, NetNewsWire, FeedMe, Read You, etc.)
-- Receives feed data pushed from an external fetcher CLI
+- Serves [Google Reader API](https://rss-sync.github.io/Open-Reader-API/spec/) to RSS clients (Reeder, NetNewsWire, etc.)
+- Separate architecture for feed fetcher and server. The API deployed on Cloudflare receives feed data pushed from an external fetcher.
+- Fully managable from CLI
 - Includes a native REST API for web frontends
 - Runs on Cloudflare free tier for personal use
 
@@ -13,10 +14,10 @@ Headless Google Reader-compatible RSS sync service on Cloudflare Workers + D1.
 ┌─────────────────────────────────┐     ┌──────────────────────────────────────┐
 │  Your server (CLI)              │     │  Cloudflare (Worker + D1)            │
 │                                 │     │                                      │
-│  cron → headrss feed fetch      │     │  /api/google/*  ← RSS clients       │
-│    ├─ GET  /admin/feeds ────────┼────▶│  /api/native/*  ← web frontend      │
-│    ├─ fetch RSS/Atom feeds      │     │  /ingest/*      ← fetcher push      │
-│    └─ POST /ingest/items ───────┼────▶│  /admin/*       ← admin/fetcher     │
+│  cron → headrss feed fetch      │     │  /api/google/*  ← RSS clients        │
+│    ├─ GET  /admin/feeds ────────┼────▶│  /api/native/*  ← web frontend       │
+│    ├─ fetch RSS/Atom feeds      │     │  /ingest/*      ← fetcher push       │
+│    └─ POST /ingest/items ───────┼────▶│  /admin/*       ← admin/fetcher      │
 │                                 │     │         │                            │
 │  cron → headrss feed purge ─────┼────▶│         ▼                            │
 │                                 │     │        D1 (SQLite)                   │
@@ -25,9 +26,9 @@ Headless Google Reader-compatible RSS sync service on Cloudflare Workers + D1.
 └─────────────────────────────────┘     └──────────────────────────────────────┘
 ```
 
-**Worker** — stateless API layer on Cloudflare's edge. Stores feeds, items, users, and read state in D1. No servers to manage.
+**Worker**: stateless API layer on Cloudflare's edge. Stores feeds, items, users, and read state in D1. No servers to manage.
 
-**CLI** (`headrss`) — runs on your own server via Bun. Fetches RSS/Atom feeds, parses, enriches, and pushes items to the Worker. Also provides admin commands for user/feed/OPML management.
+**CLI** (`headrss`): runs on your own server/machine via Bun. Fetches RSS/Atom feeds, parses, enriches, and pushes items to the Worker. Also provides admin commands for user/feed/OPML management.
 
 ## Packages
 
@@ -198,9 +199,6 @@ Login with your username and an app password. Tested with:
 
 - Reeder (iOS/Mac)
 - NetNewsWire (Mac/iOS)
-- FeedMe (Android)
-- Read You (Android)
-- Unread (iOS)
 
 ## API endpoints
 
@@ -244,9 +242,15 @@ bun packages/cli/src/index.ts --help
 ### Building the CLI binary
 
 ```bash
+# Build
 cd packages/cli
 bun build --compile src/index.ts --outfile headrss
-# → single binary, copy to your server
+
+# Use it directly
+./headrss feed fetch
+
+# Or, copy to bin
+cp headrss ~/.local/bin/
 ```
 
 ## License
