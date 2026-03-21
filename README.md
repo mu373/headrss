@@ -1,14 +1,36 @@
 # HeadRSS
 
-HeadRSS is a Google Reader-compatible headless RSS sync service on Cloudflare Workers + D1.
+A self-hosted, headless RSS sync backend on Cloudflare Workers + D1.
 
-- Serves [Google Reader API](https://rss-sync.github.io/Open-Reader-API/spec/) to RSS clients (Reeder, NetNewsWire, etc.)
-- Separate architecture for feed fetcher and server. The API deployed on Cloudflare receives feed data pushed from an external fetcher.
-- Fully managable from CLI
-- Includes a native REST API for web frontends
+## Overview
+
+HeadRSS is built with these principles in mind:
+
+- **Decoupled**: feed fetching and sync are separate. The fetcher runs on your machine, the sync server on Cloudflare, connected only by HTTP.
+- **Extensible**: the fetch pipeline is open to customization (e.g. full-text extraction) without touching the sync server.
+- **Data ownership**: your subscriptions, read state, and content stay in your own database.
+- **Client freedom**: you can use any Google Reader-compatible app (Reeder, NetNewsWire, etc.) on any platform.
+
+## Features
+
+- [Google Reader API](https://rss-sync.github.io/Open-Reader-API/) for RSS client sync
+- Native REST API with OpenAPI spec for web frontends
+- OPML import/export
+- Authenticated feed support (Basic Auth, Bearer token, custom headers), encrypted at rest
+- Multi-user with per-device app passwords
+- Automatic exponential backoff for failing feeds
+- Separate CLI fetcher that runs on your machine via cron
+- CLI for admin and subscription management
 - Runs on Cloudflare free tier for personal use
 
 ## Architecture
+
+HeadRSS consists of two components:
+
+- **Worker**: Cloudflare Workers + D1. Handles API requests and stores all data (feeds, items, users, read state).
+- **CLI** (`headrss`): runs on your machine. Works as:
+  - **Fetcher**: fetches RSS/Atom feeds on a cron schedule and pushes items to the Worker.
+  - **Admin/user client**: manages users, feeds, subscriptions, folders, and OPML.
 
 ```
 ┌─────────────────────────────────┐     ┌──────────────────────────────────────┐
@@ -28,9 +50,7 @@ HeadRSS is a Google Reader-compatible headless RSS sync service on Cloudflare Wo
 └─────────────────────────────────┘     └──────────────────────────────────────┘
 ```
 
-**Worker**: stateless API layer on Cloudflare's edge. Stores feeds, items, users, and read state in D1. No servers to manage.
-
-**CLI** (`headrss`): runs on your own server/machine via Bun. Fetches RSS/Atom feeds, parses, enriches, and pushes items to the Worker. Also provides admin commands for user/feed/OPML management.
+See [Architecture](docs/architecture.md) for details.
 
 ## Packages
 
@@ -114,6 +134,8 @@ Optional tuning:
 | `RETENTION_DAYS` | `90` | Item retention for purge |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn`, `error` |
 
+See [Setup Guide](docs/setup.md) and [Configuration](docs/configuration.md) for details.
+
 ## Usage
 
 ### Initial setup
@@ -195,6 +217,8 @@ headrss admin opml export <userId>
 headrss admin opml import <file> --user <id>
 ```
 
+See [CLI Reference](docs/cli.md) for details.
+
 ## Connecting RSS clients
 
 Point your RSS client at the Worker URL with the Google Reader base path:
@@ -218,6 +242,8 @@ Login with your username and an app password. Tested with:
 | `/admin/*` | `FETCH_API_KEY` / `ADMIN_API_KEY` | System administration |
 | `/health` | None | Health check |
 | `/api/openapi.json` | None | OpenAPI spec |
+
+See [API Reference](docs/api.md) and [Authentication](docs/auth.md) for details.
 
 ## Development
 
@@ -260,6 +286,16 @@ bun build --compile src/index.ts --outfile headrss
 # Or, copy to bin
 cp headrss ~/.local/bin/
 ```
+
+## Documentation
+
+- [Setup Guide](docs/setup.md)
+- [Architecture](docs/architecture.md)
+- [API Reference](docs/api.md)
+- [CLI Reference](docs/cli.md)
+- [Configuration](docs/configuration.md)
+- [Data Model](docs/data-model.md)
+- [Authentication](docs/auth.md)
 
 ## License
 
