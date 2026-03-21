@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@headrss/core": "workspace:*",
-    "@hono/zod-openapi": "latest",
-    "hono": "latest",
-    "zod": "latest"
+    "@hono/zod-openapi": "^1.2.2",
+    "hono": "^4.12.8",
+    "zod": "^4.3.6"
   }
 }

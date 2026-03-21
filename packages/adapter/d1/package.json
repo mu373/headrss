@@ -12,6 +12,6 @@
     "@headrss/core": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "latest"
+    "@cloudflare/workers-types": "^4.20260317.1"
   }
 }
