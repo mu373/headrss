@@ -22,7 +22,7 @@ import { registerFolderCommands } from "./commands/folder/index.js";
 import { registerSubscriptionCommands } from "./commands/subscription/index.js";
 import { createLogger } from "./log.js";
 import { toErrorMessage } from "./utils.js";
-import { VERSION } from "./version.js";
+import { VERSION } from "@headrss/core";
 
 const program = new Command();
 const client = new HeadrssApiClient();

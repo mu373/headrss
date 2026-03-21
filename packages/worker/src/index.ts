@@ -1,6 +1,7 @@
 import { nativeApiAdapter } from "@headrss/adapter-api";
 import { D1CredentialStore, D1EntryStore } from "@headrss/adapter-d1";
 import { greaderAdapter } from "@headrss/adapter-greader";
+import { VERSION } from "@headrss/core";
 import { swaggerUI } from "@hono/swagger-ui";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -61,7 +62,7 @@ const resolveOpenApiDocument = (app: unknown): Record<string, unknown> => {
       openapi: "3.1.0",
       info: {
         title: "HeadRSS Native API",
-        version: "0.0.0",
+        version: VERSION,
       },
       servers: [{ url: "/api/native/v0" }],
     });
