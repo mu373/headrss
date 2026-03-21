@@ -1,6 +1,6 @@
 # HeadRSS
 
-Headless is a Google Reader-compatible RSS sync service on Cloudflare Workers + D1.
+HeadRSS is a Google Reader-compatible headless RSS sync service on Cloudflare Workers + D1.
 
 - Serves [Google Reader API](https://rss-sync.github.io/Open-Reader-API/spec/) to RSS clients (Reeder, NetNewsWire, etc.)
 - Separate architecture for feed fetcher and server. The API deployed on Cloudflare receives feed data pushed from an external fetcher.
