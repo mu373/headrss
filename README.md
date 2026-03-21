@@ -66,7 +66,8 @@ pnpm build
 cd packages/worker
 npx wrangler d1 create headrss
 
-# Update wrangler.toml with the returned database_id
+# Copy wrangler.toml.example and fill in your database_id
+cp wrangler.toml.example wrangler.toml
 
 # Apply migrations
 npx wrangler d1 migrations apply headrss --local    # local dev

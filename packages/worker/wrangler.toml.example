@@ -1,0 +1,17 @@
+name = "headrss"
+main = "src/index.ts"
+compatibility_date = "2026-03-19"
+compatibility_flags = ["nodejs_compat"]
+
+# Required secrets:
+# - TOKEN_KEY
+# - CREDENTIAL_KEY
+# - INGEST_API_KEY
+# - FETCH_API_KEY
+# - ADMIN_API_KEY
+
+[[d1_databases]]
+binding = "DB"
+database_name = "headrss"
+database_id = "<your-d1-database-id>"  # run: wrangler d1 create headrss
+migrations_dir = "../adapter/d1/src/migrations"
