@@ -1,4 +1,8 @@
-import { parseStreamId, READING_LIST_STREAM_ID } from "../internal/stream-id.js";
+import { DomainError } from "../errors.js";
+import {
+  parseStreamId,
+  READING_LIST_STREAM_ID,
+} from "../internal/stream-id.js";
 import type { EntryStore } from "../ports/entry-store.js";
 import type { Subscription } from "../types.js";
 
@@ -12,9 +16,10 @@ export async function markAllRead(
   store: EntryStore,
   input: MarkAllReadInput,
 ): Promise<void> {
-  const cutoffSeconds = input.timestampUsec === undefined
-    ? undefined
-    : Math.floor(input.timestampUsec / 1_000_000);
+  const cutoffSeconds =
+    input.timestampUsec === undefined
+      ? undefined
+      : Math.floor(input.timestampUsec / 1_000_000);
   const subscriptionIds = await resolveSubscriptionIdsForStream(
     store,
     input.userId,
@@ -46,7 +51,10 @@ async function resolveSubscriptionIdsForStream(
       return [];
     }
 
-    const subscription = await store.getSubscriptionByUserAndFeed(userId, feed.id);
+    const subscription = await store.getSubscriptionByUserAndFeed(
+      userId,
+      feed.id,
+    );
 
     return subscription === null ? [] : [subscription.id];
   }
@@ -66,7 +74,10 @@ async function resolveSubscriptionIdsForStream(
     return subscriptions.map((subscription) => subscription.id);
   }
 
-  throw new Error(`Unsupported mark-all-read stream: ${streamId}`);
+  throw new DomainError(
+    "UNSUPPORTED",
+    `Unsupported mark-all-read stream: ${streamId}`,
+  );
 }
 
 async function markSubscriptionRead(
@@ -91,7 +102,11 @@ async function markSubscriptionRead(
   }
 
   await store.setSubscriptionReadCursor(subscription.id, nextCursor);
-  await store.cleanStaleOverrides(subscription.userId, subscription.feedId, nextCursor);
+  await store.cleanStaleOverrides(
+    subscription.userId,
+    subscription.feedId,
+    nextCursor,
+  );
 
   if (cutoffSeconds !== undefined) {
     await store.protectPostCutoffItems(

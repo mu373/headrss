@@ -1,8 +1,14 @@
-import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@headrss/core";
-import type { ContinuationToken, EntryStore, Feed, Label } from "@headrss/core";
+import type {
+  ContinuationToken,
+  DomainErrorCode,
+  EntryStore,
+  Feed,
+  Label,
+} from "@headrss/core";
+import { DEFAULT_PAGE_SIZE, DomainError, MAX_PAGE_SIZE } from "@headrss/core";
+import type { Hook, OpenAPIHono } from "@hono/zod-openapi";
 import { z } from "@hono/zod-openapi";
 import type { Context } from "hono";
-import type { Hook, OpenAPIHono } from "@hono/zod-openapi";
 
 const publicIdPattern = /^[0-9A-Za-z]{22}$/;
 
@@ -147,7 +153,9 @@ export const validationHook: Hook<any, NativeApiEnv, string, any> = (
 
 export function installCommonHandlers(app: OpenAPIHono<NativeApiEnv>): void {
   app.onError((error, c) => jsonError(c, toApiError(error)));
-  app.notFound((c) => jsonError(c, new ApiError(404, "not_found", "Route not found.")));
+  app.notFound((c) =>
+    jsonError(c, new ApiError(404, "not_found", "Route not found.")),
+  );
 }
 
 export function jsonError(c: Context, error: ApiError): Response {
@@ -168,39 +176,45 @@ export function jsonError(c: Context, error: ApiError): Response {
   );
 }
 
+const DOMAIN_ERROR_STATUS: Record<DomainErrorCode, number> = {
+  NOT_FOUND: 404,
+  OWNERSHIP_MISMATCH: 403,
+  ALREADY_EXISTS: 409,
+  INVALID_INPUT: 400,
+  UNSUPPORTED: 400,
+};
+
+const DOMAIN_ERROR_API_CODE: Record<DomainErrorCode, string> = {
+  NOT_FOUND: "not_found",
+  OWNERSHIP_MISMATCH: "forbidden",
+  ALREADY_EXISTS: "conflict",
+  INVALID_INPUT: "invalid_request",
+  UNSUPPORTED: "invalid_request",
+};
+
 export function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) {
     return error;
   }
 
-  if (error instanceof Error) {
-    if (
-      error.message.includes("was not found.") ||
-      error.message.includes("ownership mismatch")
-    ) {
-      return new ApiError(404, "not_found", error.message);
-    }
-
-    if (error.message === "Label name already exists.") {
-      return new ApiError(409, "conflict", error.message);
-    }
-
-    if (
-      error.message.startsWith("Unsupported ") ||
-      error.message === "A subscriptionId or feedUrl is required."
-    ) {
-      return new ApiError(400, "invalid_request", error.message);
-    }
-
-    console.error(error);
-    return new ApiError(500, "internal_error", "Internal server error.");
+  if (error instanceof DomainError) {
+    return new ApiError(
+      DOMAIN_ERROR_STATUS[error.code],
+      DOMAIN_ERROR_API_CODE[error.code],
+      error.message,
+    );
   }
 
-  console.error(error);
+  if (error instanceof Error) {
+    console.error(error);
+  }
+
   return new ApiError(500, "internal_error", "Internal server error.");
 }
 
-export function parseContinuationToken(raw: string | undefined): ContinuationToken | undefined {
+export function parseContinuationToken(
+  raw: string | undefined,
+): ContinuationToken | undefined {
   if (raw === undefined) {
     return undefined;
   }
@@ -226,7 +240,9 @@ export function parseContinuationToken(raw: string | undefined): ContinuationTok
   };
 }
 
-export function encodeContinuationToken(token: ContinuationToken | undefined): string | undefined {
+export function encodeContinuationToken(
+  token: ContinuationToken | undefined,
+): string | undefined {
   if (token === undefined) {
     return undefined;
   }
@@ -247,7 +263,11 @@ export function parseBooleanQuery(value: unknown): boolean | undefined {
     return false;
   }
 
-  throw new ApiError(400, "invalid_request", "Boolean query values must be true or false.");
+  throw new ApiError(
+    400,
+    "invalid_request",
+    "Boolean query values must be true or false.",
+  );
 }
 
 export async function requireOwnedLabel(
@@ -264,7 +284,10 @@ export async function requireOwnedLabel(
   return label;
 }
 
-export async function requireFeed(store: EntryStore, feedId: number): Promise<Feed> {
+export async function requireFeed(
+  store: EntryStore,
+  feedId: number,
+): Promise<Feed> {
   const feed = await store.getFeedById(feedId);
 
   if (feed === null) {
@@ -274,16 +297,14 @@ export async function requireFeed(store: EntryStore, feedId: number): Promise<Fe
   return feed;
 }
 
-export function toNativeSubscription(
-  subscription: {
-    id: number;
-    feedId: number;
-    customTitle: string | null;
-    readCursorItemId: number | null;
-    feed: Feed;
-    labels: Label[];
-  },
-): z.infer<typeof subscriptionSchema> {
+export function toNativeSubscription(subscription: {
+  id: number;
+  feedId: number;
+  customTitle: string | null;
+  readCursorItemId: number | null;
+  feed: Feed;
+  labels: Label[];
+}): z.infer<typeof subscriptionSchema> {
   return {
     id: subscription.id,
     feedId: subscription.feedId,
@@ -294,27 +315,25 @@ export function toNativeSubscription(
   };
 }
 
-export function toNativeEntry(
-  entry: {
-    publicId: string;
-    feedId: number;
-    guid: string;
-    title: string | null;
-    url: string | null;
-    author: string | null;
-    content: string | null;
-    summary: string | null;
-    publishedAt: number;
-    crawlTimeMs: number | null;
-    createdAt: number;
-    state: {
-      isRead: boolean;
-      isStarred: boolean;
-      starredAt: number | null;
-    };
-    labels: Label[];
-  },
-): z.infer<typeof entrySchema> {
+export function toNativeEntry(entry: {
+  publicId: string;
+  feedId: number;
+  guid: string;
+  title: string | null;
+  url: string | null;
+  author: string | null;
+  content: string | null;
+  summary: string | null;
+  publishedAt: number;
+  crawlTimeMs: number | null;
+  createdAt: number;
+  state: {
+    isRead: boolean;
+    isStarred: boolean;
+    starredAt: number | null;
+  };
+  labels: Label[];
+}): z.infer<typeof entrySchema> {
   return {
     id: entry.publicId,
     feedId: entry.feedId,
@@ -333,17 +352,26 @@ export function toNativeEntry(
 }
 
 export function limitQuerySchema() {
-  return z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE);
+  return z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_PAGE_SIZE)
+    .default(DEFAULT_PAGE_SIZE);
 }
 
 export function idPathParam(name: string) {
-  return z.coerce.number().int().positive().openapi({
-    param: {
-      in: "path",
-      name,
-      required: true,
-    },
-  });
+  return z.coerce
+    .number()
+    .int()
+    .positive()
+    .openapi({
+      param: {
+        in: "path",
+        name,
+        required: true,
+      },
+    });
 }
 
 export function publicIdPathParam(name: string) {

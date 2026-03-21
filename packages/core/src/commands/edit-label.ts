@@ -1,3 +1,4 @@
+import { DomainError } from "../errors.js";
 import type { EntryStore } from "../ports/entry-store.js";
 import type { Label } from "../types.js";
 
@@ -63,13 +64,13 @@ async function renameLabel(
   const existing = await store.getLabelByName(input.userId, input.name);
 
   if (existing !== null && existing.id !== label.id) {
-    throw new Error("Label name already exists.");
+    throw new DomainError("ALREADY_EXISTS", "Label name already exists.");
   }
 
   const updated = await store.updateLabel(label.id, { name: input.name });
 
   if (updated === null) {
-    throw new Error(`Label ${label.id} was not found.`);
+    throw new DomainError("NOT_FOUND", `Label ${label.id} was not found.`);
   }
 
   return updated;
@@ -108,11 +109,11 @@ async function requireOwnedLabel(
   const label = await store.getLabelById(labelId);
 
   if (label === null) {
-    throw new Error(`Label ${labelId} was not found.`);
+    throw new DomainError("NOT_FOUND", `Label ${labelId} was not found.`);
   }
 
   if (label.userId !== userId) {
-    throw new Error("Label ownership mismatch.");
+    throw new DomainError("OWNERSHIP_MISMATCH", "Label ownership mismatch.");
   }
 
   return label;

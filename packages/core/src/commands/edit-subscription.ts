@@ -1,3 +1,5 @@
+import { DomainError } from "../errors.js";
+import { dedupeNumbers, validateOwnedLabels } from "../internal/ownership.js";
 import type { EntryStore } from "../ports/entry-store.js";
 import type { Subscription } from "../types.js";
 
@@ -52,7 +54,10 @@ async function subscribe(
   await validateOwnedLabels(store, input.userId, labelIds);
 
   const feed = await store.upsertFeed({ url: input.feedUrl });
-  const existing = await store.getSubscriptionByUserAndFeed(input.userId, feed.id);
+  const existing = await store.getSubscriptionByUserAndFeed(
+    input.userId,
+    feed.id,
+  );
   const subscription =
     existing ??
     (await store.createSubscription({
@@ -67,11 +72,21 @@ async function subscribe(
     });
 
     if (updated !== null) {
-      return replaceLabelsIfNeeded(store, updated, labelIds, input.labelIds !== undefined);
+      return replaceLabelsIfNeeded(
+        store,
+        updated,
+        labelIds,
+        input.labelIds !== undefined,
+      );
     }
   }
 
-  return replaceLabelsIfNeeded(store, subscription, labelIds, input.labelIds !== undefined);
+  return replaceLabelsIfNeeded(
+    store,
+    subscription,
+    labelIds,
+    input.labelIds !== undefined,
+  );
 }
 
 async function unsubscribe(
@@ -101,7 +116,10 @@ async function renameSubscription(
   });
 
   if (updated === null) {
-    throw new Error(`Subscription ${subscription.id} was not found.`);
+    throw new DomainError(
+      "NOT_FOUND",
+      `Subscription ${subscription.id} was not found.`,
+    );
   }
 
   return updated;
@@ -150,7 +168,10 @@ async function resolveSubscription(
     }
 
     if (subscription.userId !== userId) {
-      throw new Error("Subscription ownership mismatch.");
+      throw new DomainError(
+        "OWNERSHIP_MISMATCH",
+        "Subscription ownership mismatch.",
+      );
     }
 
     return subscription;
@@ -166,7 +187,10 @@ async function resolveSubscription(
     return store.getSubscriptionByUserAndFeed(userId, feed.id);
   }
 
-  throw new Error("A subscriptionId or feedUrl is required.");
+  throw new DomainError(
+    "INVALID_INPUT",
+    "A subscriptionId or feedUrl is required.",
+  );
 }
 
 async function requireOwnedSubscription(
@@ -177,34 +201,18 @@ async function requireOwnedSubscription(
   const subscription = await store.getSubscriptionById(subscriptionId);
 
   if (subscription === null) {
-    throw new Error(`Subscription ${subscriptionId} was not found.`);
+    throw new DomainError(
+      "NOT_FOUND",
+      `Subscription ${subscriptionId} was not found.`,
+    );
   }
 
   if (subscription.userId !== userId) {
-    throw new Error("Subscription ownership mismatch.");
+    throw new DomainError(
+      "OWNERSHIP_MISMATCH",
+      "Subscription ownership mismatch.",
+    );
   }
 
   return subscription;
-}
-
-async function validateOwnedLabels(
-  store: EntryStore,
-  userId: number,
-  labelIds: ReadonlyArray<number>,
-): Promise<void> {
-  for (const labelId of dedupeNumbers(labelIds)) {
-    const label = await store.getLabelById(labelId);
-
-    if (label === null) {
-      throw new Error(`Label ${labelId} was not found.`);
-    }
-
-    if (label.userId !== userId) {
-      throw new Error("Label ownership mismatch.");
-    }
-  }
-}
-
-function dedupeNumbers(values: ReadonlyArray<number>): number[] {
-  return [...new Set(values)];
 }

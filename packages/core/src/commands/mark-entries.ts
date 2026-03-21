@@ -1,7 +1,7 @@
 import { ENTRIES_PER_BATCH_QUERY } from "../constants.js";
 import { chunkArray } from "../internal/chunk.js";
-import type { EntryStore } from "../ports/entry-store.js";
-import type { EntryView } from "../ports/entry-store.js";
+import { dedupeNumbers, validateOwnedLabels } from "../internal/ownership.js";
+import type { EntryStore, EntryView } from "../ports/entry-store.js";
 import type { ItemState } from "../types.js";
 
 export interface MarkEntriesInput {
@@ -27,7 +27,10 @@ export async function markEntries(
 ): Promise<void> {
   const addLabelIds = dedupeNumbers(input.addLabelIds ?? []);
   const removeLabelIds = dedupeNumbers(input.removeLabelIds ?? []);
-  await validateOwnedLabels(store, input.userId, [...addLabelIds, ...removeLabelIds]);
+  await validateOwnedLabels(store, input.userId, [
+    ...addLabelIds,
+    ...removeLabelIds,
+  ]);
 
   const entries = await loadEntriesByPublicIds(
     store,
@@ -40,10 +43,16 @@ export async function markEntries(
   }
 
   const contexts = await buildEntryContexts(store, input.userId, entries);
-  const starredAt = input.starred === true ? (input.starredAt ?? nowInSeconds()) : null;
+  const starredAt =
+    input.starred === true ? (input.starredAt ?? nowInSeconds()) : null;
 
   for (const context of contexts) {
-    const nextState = resolveNextState(context, input.read, input.starred, starredAt);
+    const nextState = resolveNextState(
+      context,
+      input.read,
+      input.starred,
+      starredAt,
+    );
 
     if (nextState === null) {
       await store.deleteItemState(input.userId, context.entry.id);
@@ -88,10 +97,16 @@ async function buildEntryContexts(
 
   for (const entry of entries) {
     if (!subscriptionByFeedId.has(entry.feedId)) {
-      const subscription = await store.getSubscriptionByUserAndFeed(userId, entry.feedId);
+      const subscription = await store.getSubscriptionByUserAndFeed(
+        userId,
+        entry.feedId,
+      );
 
       if (subscription !== null) {
-        subscriptionByFeedId.set(entry.feedId, subscription.readCursorItemId ?? 0);
+        subscriptionByFeedId.set(
+          entry.feedId,
+          subscription.readCursorItemId ?? 0,
+        );
       }
     }
   }
@@ -100,7 +115,9 @@ async function buildEntryContexts(
     userId,
     entries.map((entry) => entry.id),
   );
-  const stateByItemId = new Map(itemStates.map((state) => [state.itemId, state]));
+  const stateByItemId = new Map(
+    itemStates.map((state) => [state.itemId, state]),
+  );
 
   return entries
     .filter((entry) => subscriptionByFeedId.has(entry.feedId))
@@ -158,29 +175,7 @@ function resolveReadOverride(
   return read ? 1 : 0;
 }
 
-async function validateOwnedLabels(
-  store: EntryStore,
-  userId: number,
-  labelIds: ReadonlyArray<number>,
-): Promise<void> {
-  for (const labelId of dedupeNumbers(labelIds)) {
-    const label = await store.getLabelById(labelId);
-
-    if (label === null) {
-      throw new Error(`Label ${labelId} was not found.`);
-    }
-
-    if (label.userId !== userId) {
-      throw new Error("Label ownership mismatch.");
-    }
-  }
-}
-
 function dedupeStrings(values: ReadonlyArray<string>): string[] {
-  return [...new Set(values)];
-}
-
-function dedupeNumbers(values: ReadonlyArray<number>): number[] {
   return [...new Set(values)];
 }
 

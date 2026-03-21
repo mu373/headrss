@@ -1,11 +1,15 @@
 import {
-  DEFAULT_PAGE_SIZE,
-  MAX_PAGE_SIZE,
   type ContinuationToken,
+  DEFAULT_PAGE_SIZE,
+  DomainError,
+  type DomainErrorCode,
   type EntryStore,
   type EntryView,
   type Feed,
+  MAX_PAGE_SIZE,
 } from "@headrss/core";
+import type { Context, Hono } from "hono";
+import { numericIdToGReaderId } from "./id.js";
 import {
   READ_STREAM_ID,
   READING_LIST_STREAM_ID,
@@ -13,10 +17,6 @@ import {
   toFeedStreamId,
   toLabelStreamId,
 } from "./stream-id.js";
-import type { Context } from "hono";
-import type { Hono } from "hono";
-
-import { numericIdToGReaderId } from "./id.js";
 
 export interface GReaderAppEnv {
   Variables: {
@@ -84,21 +84,25 @@ export function appErrorResponse(
     );
   }
 
-  if (error instanceof Error) {
+  if (error instanceof DomainError) {
     return new Response(
       JSON.stringify({
         error: {
-          code: "INTERNAL_ERROR",
+          code: error.code,
           message: error.message,
         },
       }),
       {
-        status: inferStatus(error.message),
+        status: domainErrorStatus(error.code),
         headers: {
           "content-type": "application/json; charset=utf-8",
         },
       },
     );
+  }
+
+  if (error instanceof Error) {
+    console.error(error);
   }
 
   return new Response(
@@ -117,28 +121,16 @@ export function appErrorResponse(
   );
 }
 
-function inferStatus(message: string): 400 | 403 | 404 | 409 | 500 {
-  if (
-    message.includes("required") ||
-    message.includes("Unsupported") ||
-    message.includes("Invalid")
-  ) {
-    return 400;
-  }
+const DOMAIN_ERROR_STATUS: Record<DomainErrorCode, number> = {
+  NOT_FOUND: 404,
+  OWNERSHIP_MISMATCH: 403,
+  ALREADY_EXISTS: 409,
+  INVALID_INPUT: 400,
+  UNSUPPORTED: 400,
+};
 
-  if (message.includes("ownership mismatch")) {
-    return 403;
-  }
-
-  if (message.includes("not found")) {
-    return 404;
-  }
-
-  if (message.includes("already exists")) {
-    return 409;
-  }
-
-  return 500;
+function domainErrorStatus(code: DomainErrorCode): number {
+  return DOMAIN_ERROR_STATUS[code];
 }
 
 export async function getParamValues(
@@ -179,9 +171,9 @@ async function getBodyParamValues(
   }
 
   const form = await c.req.raw.clone().formData();
-  return form.getAll(name).flatMap((value) =>
-    typeof value === "string" ? [value] : []
-  );
+  return form
+    .getAll(name)
+    .flatMap((value) => (typeof value === "string" ? [value] : []));
 }
 
 export function requireInteger(
@@ -269,9 +261,9 @@ export function extractClientIp(c: Context<GReaderAppEnv>): string {
     return forwardedFor.split(",")[0]?.trim() ?? "unknown";
   }
 
-  return c.req.header("cf-connecting-ip") ??
-    c.req.header("x-real-ip") ??
-    "unknown";
+  return (
+    c.req.header("cf-connecting-ip") ?? c.req.header("x-real-ip") ?? "unknown"
+  );
 }
 
 export function getUserId(c: Context<GReaderAppEnv>): number {
@@ -349,7 +341,7 @@ export function installStubRoutes(app: Hono<GReaderAppEnv>): void {
   app.get("/reader/ping", (c) => c.text("OK"));
   app.get("/reader/api/0/preference/list", (c) => c.json({ prefs: {} }));
   app.get("/reader/api/0/preference/stream/list", (c) =>
-    c.json({ streamprefs: {} })
+    c.json({ streamprefs: {} }),
   );
   app.get("/reader/api/0/friend/list", (c) => c.json({ friends: [] }));
 }

@@ -1,8 +1,8 @@
 import { INGEST_BATCH_SIZE } from "../constants.js";
+import { DomainError } from "../errors.js";
 import { generatePublicId } from "../id.js";
 import { chunkArray } from "../internal/chunk.js";
-import type { EntryStore } from "../ports/entry-store.js";
-import type { EntryInsertInput } from "../ports/entry-store.js";
+import type { EntryInsertInput, EntryStore } from "../ports/entry-store.js";
 import type { IngestResult } from "../types.js";
 
 export interface IngestEntryInput {
@@ -33,7 +33,7 @@ export async function ingestEntries(
   const feed = await store.getFeedById(input.feedId);
 
   if (feed === null) {
-    throw new Error(`Feed ${input.feedId} was not found.`);
+    throw new DomainError("NOT_FOUND", `Feed ${input.feedId} was not found.`);
   }
 
   let inserted = 0;
@@ -79,9 +79,7 @@ export async function ingestEntries(
       return entry;
     });
 
-    const result = await store.insertEntries(
-      entries,
-    );
+    const result = await store.insertEntries(entries);
 
     inserted += result.inserted;
     skipped += result.skipped;

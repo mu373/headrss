@@ -1,5 +1,7 @@
 export * from "./commands/index.js";
 export * from "./constants.js";
+export * from "./errors.js";
+export * from "./fetch/index.js";
 export * from "./id.js";
 export { chunkArray } from "./internal/chunk.js";
 export * from "./opml.js";
@@ -8,4 +10,3 @@ export * from "./queries/index.js";
 export * from "./schemas/index.js";
 export * from "./types.js";
 export * from "./url.js";
-export * from "./fetch/index.js";
