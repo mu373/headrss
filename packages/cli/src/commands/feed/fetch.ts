@@ -38,9 +38,10 @@ export function registerFeedFetchCommand(
     .command("fetch")
     .option("--dry-run", "Show due feeds without fetching them")
     .option("--feed-id <ids...>", "Force-fetch specific feed IDs (bypasses due check)")
+    .option("--force", "Fetch all feeds regardless of schedule")
     .description("Fetch due feeds")
-    .action(async (options: { dryRun?: boolean; feedId?: string[] }) => {
-      await runFeedFetchCommand(client, Boolean(options.dryRun), options.feedId?.map(Number));
+    .action(async (options: { dryRun?: boolean; feedId?: string[]; force?: boolean }) => {
+      await runFeedFetchCommand(client, Boolean(options.dryRun), options.feedId?.map(Number), Boolean(options.force));
     });
 }
 
@@ -48,6 +49,7 @@ export async function runFeedFetchCommand(
   client: HeadrssApiClient,
   dryRun: boolean,
   feedIds?: number[],
+  force?: boolean,
 ): Promise<void> {
   const logger = createLogger();
   const fetchApiKey = requireEnv("FETCH_API_KEY");
@@ -59,10 +61,19 @@ export async function runFeedFetchCommand(
     dueFeeds = allFeeds
       .filter((feed) => feedIds.includes(feed.id))
       .sort((left, right) => left.url.localeCompare(right.url));
+  } else if (force) {
+    dueFeeds = (await client.listFeeds(requireEnv("ADMIN_API_KEY")))
+      .sort((left, right) => left.url.localeCompare(right.url));
   } else {
     dueFeeds = (await client.listDueFeeds(fetchApiKey))
       .filter(isEligibleFeed)
       .sort((left, right) => left.url.localeCompare(right.url));
+  }
+
+  logger.info(`Found ${dueFeeds.length} feed(s) to fetch.`);
+
+  if (dueFeeds.length === 0) {
+    return;
   }
 
   if (dryRun) {
@@ -81,6 +92,8 @@ export async function runFeedFetchCommand(
   const transport = new HttpFetchTransport();
   const groups = groupByDomain(dueFeeds);
   const limit = pLimit(concurrency);
+
+  const startedAt = Date.now();
 
   await Promise.all(
     [...groups.entries()].map(([domain, feeds]) =>
@@ -111,6 +124,9 @@ export async function runFeedFetchCommand(
         }
       })),
   );
+
+  const elapsedMs = Date.now() - startedAt;
+  logger.info(`Fetch complete.`, { feeds: dueFeeds.length, durationMs: elapsedMs });
 }
 
 async function processFeed(input: {
