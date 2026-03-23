@@ -118,9 +118,18 @@ export const createWorkerApp = (env: AppEnv["Bindings"]): Hono<AppEnv> => {
   return app;
 };
 
+let cachedApp: Hono<AppEnv> | null = null;
+
+const getOrCreateApp = (env: AppEnv["Bindings"]): Hono<AppEnv> => {
+  if (cachedApp === null) {
+    cachedApp = createWorkerApp(env);
+  }
+  return cachedApp;
+};
+
 export default {
   fetch(request, env, executionCtx) {
-    return createWorkerApp(env).fetch(request, env, executionCtx);
+    return getOrCreateApp(env).fetch(request, env, executionCtx);
   },
 } satisfies ExportedHandler<AppEnv["Bindings"]>;
 
