@@ -289,6 +289,8 @@ All other Native API endpoints require `Authorization: Bearer <token>`.
 | PUT | `/subscriptions/{id}` | Update subscription (title, folder) |
 | DELETE | `/subscriptions/{id}` | Unsubscribe |
 | POST | `/subscriptions/{id}/mark-all-read` | Mark all entries as read |
+| PUT | `/subscriptions/{id}/credentials` | Set feed credentials (basic auth) |
+| DELETE | `/subscriptions/{id}/credentials` | Remove feed credentials |
 | GET | `/subscriptions/export` | Export subscriptions as OPML |
 | POST | `/subscriptions/import` | Import subscriptions from OPML |
 
@@ -365,6 +367,29 @@ The `before` field is a UNIX timestamp in seconds. If omitted, all entries are m
   "total": 15
 }
 ```
+
+**Set credentials request:**
+
+```json
+{
+  "username": "alice",
+  "password": "secret"
+}
+```
+
+**Set credentials response (200):**
+
+```json
+{ "ok": true }
+```
+
+**Delete credentials response (200):**
+
+```json
+{ "ok": true }
+```
+
+Credentials are stored at the feed level. Setting or clearing credentials for a subscription affects all subscribers to the same feed. Returns 404 if the subscription is not found or (for delete) if no credential exists.
 
 ### Folders
 

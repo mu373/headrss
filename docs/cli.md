@@ -161,6 +161,40 @@ $ headrss subscription rm 42
 
 ---
 
+### subscription credentials
+
+Set or clear feed credentials for a subscription. Credentials are stored at the feed level (shared across all subscribers to the same feed).
+
+**Syntax:**
+
+```
+headrss subscription credentials <id> --username <username> --password <password>
+headrss subscription credentials <id> --clear
+```
+
+**Arguments:**
+
+| Argument | Description |
+|---|---|
+| `id` | Subscription ID |
+
+**Options:**
+
+| Option | Description |
+|---|---|
+| `--username <username>` | Username for basic auth |
+| `--password <password>` | Password for basic auth |
+| `--clear` | Remove stored credentials |
+
+**Examples:**
+
+```
+$ headrss subscription credentials 42 --username alice --password secret
+$ headrss subscription credentials 42 --clear
+```
+
+---
+
 ### subscription import
 
 Import subscriptions from an OPML file.

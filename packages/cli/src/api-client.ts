@@ -218,6 +218,27 @@ export class HeadrssApiClient {
     });
   }
 
+  async setSubscriptionCredentials(
+    token: string,
+    id: number,
+    body: { username: string; password: string },
+  ): Promise<{ ok: true }> {
+    return this.request({
+      auth: { kind: "native", token },
+      body,
+      method: "PUT",
+      path: `/api/native/v0/subscriptions/${id}/credentials`,
+    });
+  }
+
+  async deleteSubscriptionCredentials(token: string, id: number): Promise<{ ok: true }> {
+    return this.request({
+      auth: { kind: "native", token },
+      method: "DELETE",
+      path: `/api/native/v0/subscriptions/${id}/credentials`,
+    });
+  }
+
   async listFolders(token: string): Promise<{ items: NativeLabel[] }> {
     return this.request({
       auth: { kind: "native", token },

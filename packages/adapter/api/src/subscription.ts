@@ -54,6 +54,11 @@ const markAllReadBodySchema = z.object({
   before: timestampSchema.optional(),
 });
 
+const setCredentialsBodySchema = z.object({
+  password: z.string().min(1),
+  username: z.string().min(1),
+});
+
 const listSubscriptionsRoute = createRoute({
   method: "get",
   path: "/subscriptions",
@@ -256,6 +261,90 @@ const markAllReadRoute = createRoute({
         },
       },
       description: "Subscription not found.",
+    },
+  },
+});
+
+const setCredentialsRoute = createRoute({
+  method: "put",
+  path: "/subscriptions/{id}/credentials",
+  request: {
+    params: subscriptionPathParamsSchema,
+    body: {
+      content: {
+        "application/json": {
+          schema: setCredentialsBodySchema,
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: okResponseSchema,
+        },
+      },
+      description: "Credentials stored.",
+    },
+    400: {
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+      description: "Invalid request.",
+    },
+    401: {
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+      description: "Authentication required.",
+    },
+    404: {
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+      description: "Subscription not found.",
+    },
+  },
+});
+
+const deleteCredentialsRoute = createRoute({
+  method: "delete",
+  path: "/subscriptions/{id}/credentials",
+  request: {
+    params: subscriptionPathParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: okResponseSchema,
+        },
+      },
+      description: "Credentials deleted.",
+    },
+    401: {
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+      description: "Authentication required.",
+    },
+    404: {
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+      description: "Subscription or credential not found.",
     },
   },
 });
@@ -526,6 +615,46 @@ export function registerSubscriptionRoutes(
         userId,
         ...(timestampUsec !== undefined ? { timestampUsec } : {}),
       });
+
+      return c.json({ ok: true as const }, 200);
+    },
+  );
+
+  openapi(
+    {
+      ...setCredentialsRoute,
+      middleware: deps.authMiddleware,
+    } as any,
+    async (c: any) => {
+      const userId = c.get("userId");
+      const { id } = c.req.valid("param" as never) as z.output<
+        typeof subscriptionPathParamsSchema
+      >;
+      const body = c.req.valid("json" as never) as z.output<typeof setCredentialsBodySchema>;
+      const subscription = await requireOwnedSubscription(deps.store, userId, id);
+
+      await storeBasicCredentials(deps.credentialStore, subscription.feedId, body);
+
+      return c.json({ ok: true as const }, 200);
+    },
+  );
+
+  openapi(
+    {
+      ...deleteCredentialsRoute,
+      middleware: deps.authMiddleware,
+    } as any,
+    async (c: any) => {
+      const userId = c.get("userId");
+      const { id } = c.req.valid("param" as never) as z.output<
+        typeof subscriptionPathParamsSchema
+      >;
+      const subscription = await requireOwnedSubscription(deps.store, userId, id);
+      const deleted = await deps.credentialStore.delete(subscription.feedId);
+
+      if (!deleted) {
+        throw new ApiError(404, "not_found", "Feed credential not found.");
+      }
 
       return c.json({ ok: true as const }, 200);
     },
