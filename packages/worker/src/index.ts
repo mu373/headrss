@@ -102,7 +102,12 @@ export const createWorkerApp = (env: AppEnv["Bindings"]): Hono<AppEnv> => {
   app.get("/api/openapi.json", (c) => c.json(openApiDocument));
   app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }));
 
-  app.all("/api/google", () => new Response("Unauthorized", { status: 401 }));
+  app.all("/api/google", () =>
+    new Response("Unauthorized", {
+      status: 401,
+      headers: { "Google-Bad-Token": "true" },
+    }),
+  );
 
   app.route("/api/google", greader);
   app.route("/api/native/v0", nativeApi);
