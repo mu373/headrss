@@ -9,6 +9,12 @@
     "typecheck": "pnpm -r run typecheck",
     "format": "biome format . --write"
   },
+  "pnpm": {
+    "overrides": {
+      "picomatch": ">=4.0.4",
+      "yaml": ">=2.8.3"
+    }
+  },
   "devDependencies": {
     "@types/node": "^25.5.0",
     "@biomejs/biome": "^2.4.8",
