@@ -32,10 +32,10 @@ importers:
         version: link:../../core
       '@hono/zod-openapi':
         specifier: ^1.2.2
-        version: 1.2.2(hono@4.12.8)(zod@4.3.6)
+        version: 1.2.2(hono@4.12.9)(zod@4.3.6)
       hono:
-        specifier: ^4.12.8
-        version: 4.12.8
+        specifier: ^4.12.9
+        version: 4.12.9
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -57,10 +57,10 @@ importers:
         version: link:../../core
       '@hono/zod-openapi':
         specifier: ^1.2.2
-        version: 1.2.2(hono@4.12.8)(zod@4.3.6)
+        version: 1.2.2(hono@4.12.9)(zod@4.3.6)
       hono:
-        specifier: ^4.12.8
-        version: 4.12.8
+        specifier: ^4.12.9
+        version: 4.12.9
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -106,16 +106,16 @@ importers:
         version: link:../core
       '@hono/swagger-ui':
         specifier: ^0.6.1
-        version: 0.6.1(hono@4.12.8)
+        version: 0.6.1(hono@4.12.9)
       '@hono/zod-openapi':
         specifier: ^1.2.2
-        version: 1.2.2(hono@4.12.8)(zod@4.3.6)
+        version: 1.2.2(hono@4.12.9)(zod@4.3.6)
       fast-xml-parser:
         specifier: ^5.5.8
         version: 5.5.8
       hono:
-        specifier: ^4.12.8
-        version: 4.12.8
+        specifier: ^4.12.9
+        version: 4.12.9
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -803,8 +803,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  hono@4.12.8:
-    resolution: {integrity: sha512-VJCEvtrezO1IAR+kqEYnxUOoStaQPGrCmX3j4wDTNOcD1uRPFpGlwQUIW8niPuvHXaTUxeOUl5MMDGrl+tmO9A==}
+  hono@4.12.9:
+    resolution: {integrity: sha512-wy3T8Zm2bsEvxKZM5w21VdHDDcwVS1yUFFY6i8UobSsKfFceT7TOwhbhfKsDyx7tYQlmRM5FLpIuYvNFyjctiA==}
     engines: {node: '>=16.9.0'}
 
   kleur@4.1.5:
@@ -916,6 +916,10 @@ packages:
 
   picocolors@1.1.1:
     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
+
+  picomatch@4.0.4:
+    resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
+    engines: {node: '>=12'}
 
   picomatch@4.0.4:
     resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
@@ -1285,21 +1289,21 @@ snapshots:
   '@esbuild/win32-x64@0.27.3':
     optional: true
 
-  '@hono/swagger-ui@0.6.1(hono@4.12.8)':
+  '@hono/swagger-ui@0.6.1(hono@4.12.9)':
     dependencies:
-      hono: 4.12.8
+      hono: 4.12.9
 
-  '@hono/zod-openapi@1.2.2(hono@4.12.8)(zod@4.3.6)':
+  '@hono/zod-openapi@1.2.2(hono@4.12.9)(zod@4.3.6)':
     dependencies:
       '@asteasolutions/zod-to-openapi': 8.4.3(zod@4.3.6)
-      '@hono/zod-validator': 0.7.6(hono@4.12.8)(zod@4.3.6)
-      hono: 4.12.8
+      '@hono/zod-validator': 0.7.6(hono@4.12.9)(zod@4.3.6)
+      hono: 4.12.9
       openapi3-ts: 4.5.0
       zod: 4.3.6
 
-  '@hono/zod-validator@0.7.6(hono@4.12.8)(zod@4.3.6)':
+  '@hono/zod-validator@0.7.6(hono@4.12.9)(zod@4.3.6)':
     dependencies:
-      hono: 4.12.8
+      hono: 4.12.9
       zod: 4.3.6
 
   '@img/colour@1.1.0': {}
@@ -1622,7 +1626,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  hono@4.12.8: {}
+  hono@4.12.9: {}
 
   kleur@4.1.5: {}
 
@@ -1710,6 +1714,8 @@ snapshots:
   pathe@2.0.3: {}
 
   picocolors@1.1.1: {}
+
+  picomatch@4.0.4: {}
 
   picomatch@4.0.4: {}
 
