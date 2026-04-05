@@ -7,7 +7,7 @@ const parser = new XMLParser({
   cdataPropName: "__cdata",
   ignoreAttributes: false,
   parseTagValue: false,
-  processEntities: { maxTotalExpansions: 10_000 },
+  processEntities: { maxTotalExpansions: 30_000 },
   removeNSPrefix: true,
   trimValues: true,
 });
