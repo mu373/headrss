@@ -1,5 +1,5 @@
-import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { createInterface } from "node:readline/promises";
 
 import type { Command } from "commander";
 
@@ -11,7 +11,9 @@ export function registerAdminPasswordCommands(
   parent: Command,
   client: HeadrssApiClient,
 ): void {
-  const password = parent.command("password").description("Manage app passwords");
+  const password = parent
+    .command("password")
+    .description("Manage app passwords");
   const getApiKey = (): string => requireEnv("ADMIN_API_KEY");
 
   password
@@ -19,7 +21,9 @@ export function registerAdminPasswordCommands(
     .argument("<userId>", "User ID")
     .description("List app passwords for a user")
     .action(async (userId: string) => {
-      printJson(await client.listAppPasswords(getApiKey(), Number.parseInt(userId, 10)));
+      printJson(
+        await client.listAppPasswords(getApiKey(), Number.parseInt(userId, 10)),
+      );
     });
 
   password
@@ -28,7 +32,7 @@ export function registerAdminPasswordCommands(
     .option("--label <label>", "Password label")
     .description("Create an app password")
     .action(async (userId: string, options: { label?: string }) => {
-      const label = options.label ?? await promptLabel();
+      const label = options.label ?? (await promptLabel());
       const created = await client.addAppPassword(
         getApiKey(),
         Number.parseInt(userId, 10),
@@ -44,13 +48,17 @@ export function registerAdminPasswordCommands(
     .argument("<id>", "App password ID")
     .description("Delete an app password")
     .action(async (id: string) => {
-      printJson(await client.deleteAppPassword(getApiKey(), Number.parseInt(id, 10)));
+      printJson(
+        await client.deleteAppPassword(getApiKey(), Number.parseInt(id, 10)),
+      );
     });
 }
 
 async function promptLabel(): Promise<string> {
   if (!input.isTTY || !output.isTTY) {
-    throw new Error("Missing password label. Pass --label for non-interactive use.");
+    throw new Error(
+      "Missing password label. Pass --label for non-interactive use.",
+    );
   }
 
   const rl = createInterface({ input, output });

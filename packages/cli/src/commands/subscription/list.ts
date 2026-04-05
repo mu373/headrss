@@ -1,7 +1,6 @@
 import type { Command } from "commander";
-
-import { withNativeToken } from "../../auth.js";
 import type { HeadrssApiClient } from "../../api-client.js";
+import { withNativeToken } from "../../auth.js";
 import { printJson } from "../../utils.js";
 
 export function registerSubscriptionListCommand(
@@ -12,6 +11,10 @@ export function registerSubscriptionListCommand(
     .command("list")
     .description("List subscriptions")
     .action(async () => {
-      printJson(await withNativeToken(client, async (token) => client.listSubscriptions(token)));
+      printJson(
+        await withNativeToken(client, async (token) =>
+          client.listSubscriptions(token),
+        ),
+      );
     });
 }

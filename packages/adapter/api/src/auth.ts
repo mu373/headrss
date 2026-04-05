@@ -1,19 +1,18 @@
+import type { AuthProvider, EntryStore } from "@headrss/core";
 import {
   RATE_LIMIT_MAX_ATTEMPTS,
   RATE_LIMIT_WINDOW_SECONDS,
   TOKEN_TTL,
 } from "@headrss/core";
-import type { AuthProvider, EntryStore } from "@headrss/core";
+import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
-import type { OpenAPIHono } from "@hono/zod-openapi";
-
+import type { NativeApiEnv } from "./shared.js";
 import {
   ApiError,
   errorResponseSchema,
   tokenResponseSchema,
 } from "./shared.js";
-import type { NativeApiEnv } from "./shared.js";
 import type { TokenSignerLike } from "./token-signer.js";
 
 const AUTH_ENDPOINT = "auth/token";
@@ -90,59 +89,63 @@ export function registerAuthRoutes(
 ): void {
   const openapi = app.openapi.bind(app) as any;
 
-  openapi(
-    tokenRoute as any,
-    async (c: any) => {
-      const ip = getClientIp(c.req.header("cf-connecting-ip"), c.req.header("x-forwarded-for"));
-      const currentRateLimit = await deps.store.getRateLimit(ip, AUTH_ENDPOINT);
-      const now = nowInSeconds();
+  openapi(tokenRoute as any, async (c: any) => {
+    const ip = getClientIp(
+      c.req.header("cf-connecting-ip"),
+      c.req.header("x-forwarded-for"),
+    );
+    const currentRateLimit = await deps.store.getRateLimit(ip, AUTH_ENDPOINT);
+    const now = nowInSeconds();
 
-      if (isRateLimitExceeded(currentRateLimit, now)) {
-        throw new ApiError(
-          429,
-          "rate_limited",
-          "Too many failed authentication attempts.",
-          {
-            "Retry-After": String(RATE_LIMIT_WINDOW_SECONDS),
-          },
-        );
-      }
-
-      const { username, password } = c.req.valid("json" as never) as z.output<
-        typeof tokenRequestSchema
-      >;
-      const result = await deps.auth.validateCredentials(username, password);
-
-      if (result === null) {
-        await deps.store.incrementRateLimit(
-          ip,
-          AUTH_ENDPOINT,
-          resolveWindowStart(currentRateLimit, now),
-        );
-        throw new ApiError(401, "invalid_credentials", "Invalid username or password.");
-      }
-
-      await deps.store.resetRateLimit(ip, AUTH_ENDPOINT);
-
-      const token = await deps.tokenSigner.sign(
+    if (isRateLimitExceeded(currentRateLimit, now)) {
+      throw new ApiError(
+        429,
+        "rate_limited",
+        "Too many failed authentication attempts.",
         {
-          user_id: result.userId,
-          app_password_id: result.appPasswordId,
-          password_version: result.passwordVersion,
+          "Retry-After": String(RATE_LIMIT_WINDOW_SECONDS),
         },
-        TOKEN_TTL,
       );
+    }
 
-      return c.json(
-        {
-          expiresIn: TOKEN_TTL,
-          token,
-          tokenType: "Bearer",
-        },
-        200,
+    const { username, password } = c.req.valid("json" as never) as z.output<
+      typeof tokenRequestSchema
+    >;
+    const result = await deps.auth.validateCredentials(username, password);
+
+    if (result === null) {
+      await deps.store.incrementRateLimit(
+        ip,
+        AUTH_ENDPOINT,
+        resolveWindowStart(currentRateLimit, now),
       );
-    },
-  );
+      throw new ApiError(
+        401,
+        "invalid_credentials",
+        "Invalid username or password.",
+      );
+    }
+
+    await deps.store.resetRateLimit(ip, AUTH_ENDPOINT);
+
+    const token = await deps.tokenSigner.sign(
+      {
+        user_id: result.userId,
+        app_password_id: result.appPasswordId,
+        password_version: result.passwordVersion,
+      },
+      TOKEN_TTL,
+    );
+
+    return c.json(
+      {
+        expiresIn: TOKEN_TTL,
+        token,
+        tokenType: "Bearer",
+      },
+      200,
+    );
+  });
 }
 
 export function createAuthMiddleware(
@@ -153,16 +156,26 @@ export function createAuthMiddleware(
     const authorization = c.req.header("authorization");
 
     if (authorization === undefined) {
-      throw new ApiError(401, "authorization_required", "Authorization header is required.");
+      throw new ApiError(
+        401,
+        "authorization_required",
+        "Authorization header is required.",
+      );
     }
 
     const [scheme, token, ...rest] = authorization.split(/\s+/);
 
     if (scheme !== "Bearer" || token === undefined || rest.length > 0) {
-      throw new ApiError(401, "invalid_authorization", "Expected Authorization: Bearer TOKEN.");
+      throw new ApiError(
+        401,
+        "invalid_authorization",
+        "Expected Authorization: Bearer TOKEN.",
+      );
     }
 
-    const payload = tokenPayloadSchema.safeParse(await tokenSigner.verify(token));
+    const payload = tokenPayloadSchema.safeParse(
+      await tokenSigner.verify(token),
+    );
 
     if (!payload.success) {
       throw new ApiError(401, "invalid_token", "Token is invalid or expired.");
@@ -225,7 +238,10 @@ function resolveWindowStart(
   } | null,
   now: number,
 ): number {
-  if (rateLimit !== null && rateLimit.windowStart >= now - RATE_LIMIT_WINDOW_SECONDS) {
+  if (
+    rateLimit !== null &&
+    rateLimit.windowStart >= now - RATE_LIMIT_WINDOW_SECONDS
+  ) {
     return rateLimit.windowStart;
   }
 

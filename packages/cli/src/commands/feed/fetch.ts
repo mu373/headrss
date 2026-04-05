@@ -1,3 +1,4 @@
+import type { ParsedItem } from "@headrss/core";
 import {
   BACKOFF_BASE_MINUTES,
   BACKOFF_CAP_HOURS,
@@ -5,24 +6,28 @@ import {
   DEAD_FEED_SENTINEL,
   type FeedMetaUpdate,
 } from "@headrss/core";
-import pLimit from "p-limit";
 import type { Command } from "commander";
-
-import type { ParsedItem } from "@headrss/core";
+import pLimit from "p-limit";
 
 import type {
   AdminFeed,
   FeedCredentials,
   HeadrssApiClient,
 } from "../../api-client.js";
-import { getFetchConcurrency, getFetchIntervalSeconds, getFetchTimeoutMs, getEnv, requireEnv } from "../../config.js";
+import { ApiClientError } from "../../api-client.js";
+import {
+  getEnv,
+  getFetchConcurrency,
+  getFetchIntervalSeconds,
+  getFetchTimeoutMs,
+  requireEnv,
+} from "../../config.js";
 import { FaviconEnricher } from "../../fetch/enrichers/favicon.js";
 import { RssAtomFeedParser } from "../../fetch/parsers/rss-atom.js";
 import { HttpIngestSink } from "../../fetch/sink.js";
 import { HttpFetchTransport } from "../../fetch/transports/http.js";
 import { createLogger } from "../../log.js";
 import { normalizeUrl, printJson, sleep, toErrorMessage } from "../../utils.js";
-import { ApiClientError } from "../../api-client.js";
 
 const ACCEPT_HEADER =
   "application/rss+xml, application/atom+xml, application/xml, text/xml, */*;q=0.1";
@@ -37,12 +42,26 @@ export function registerFeedFetchCommand(
   parent
     .command("fetch")
     .option("--dry-run", "Show due feeds without fetching them")
-    .option("--feed-id <ids...>", "Force-fetch specific feed IDs (bypasses due check)")
+    .option(
+      "--feed-id <ids...>",
+      "Force-fetch specific feed IDs (bypasses due check)",
+    )
     .option("--force", "Fetch all feeds regardless of schedule")
     .description("Fetch due feeds")
-    .action(async (options: { dryRun?: boolean; feedId?: string[]; force?: boolean }) => {
-      await runFeedFetchCommand(client, Boolean(options.dryRun), options.feedId?.map(Number), Boolean(options.force));
-    });
+    .action(
+      async (options: {
+        dryRun?: boolean;
+        feedId?: string[];
+        force?: boolean;
+      }) => {
+        await runFeedFetchCommand(
+          client,
+          Boolean(options.dryRun),
+          options.feedId?.map(Number),
+          Boolean(options.force),
+        );
+      },
+    );
 }
 
 export async function runFeedFetchCommand(
@@ -62,8 +81,9 @@ export async function runFeedFetchCommand(
       .filter((feed) => feedIds.includes(feed.id))
       .sort((left, right) => left.url.localeCompare(right.url));
   } else if (force) {
-    dueFeeds = (await client.listFeeds(requireEnv("ADMIN_API_KEY")))
-      .sort((left, right) => left.url.localeCompare(right.url));
+    dueFeeds = (await client.listFeeds(requireEnv("ADMIN_API_KEY"))).sort(
+      (left, right) => left.url.localeCompare(right.url),
+    );
   } else {
     dueFeeds = (await client.listDueFeeds(fetchApiKey))
       .filter(isEligibleFeed)
@@ -86,7 +106,12 @@ export async function runFeedFetchCommand(
   const fetchIntervalSeconds = getFetchIntervalSeconds();
   const fetchTimeoutMs = getFetchTimeoutMs();
   const concurrency = getFetchConcurrency();
-  const credentialMap = await prefetchCredentials(client, fetchApiKey, dueFeeds, logger);
+  const credentialMap = await prefetchCredentials(
+    client,
+    fetchApiKey,
+    dueFeeds,
+    logger,
+  );
   const sink = new HttpIngestSink(client, ingestApiKey, logger);
   const parser = new RssAtomFeedParser();
   const transport = new HttpFetchTransport();
@@ -98,7 +123,10 @@ export async function runFeedFetchCommand(
   await Promise.all(
     [...groups.entries()].map(([domain, feeds]) =>
       limit(async () => {
-        logger.debug("Processing feed domain.", { count: feeds.length, domain });
+        logger.debug("Processing feed domain.", {
+          count: feeds.length,
+          domain,
+        });
         let nextAllowedAt = 0;
 
         for (const feed of feeds) {
@@ -122,11 +150,15 @@ export async function runFeedFetchCommand(
 
           nextAllowedAt = Date.now() + DOMAIN_GAP_MS;
         }
-      })),
+      }),
+    ),
   );
 
   const elapsedMs = Date.now() - startedAt;
-  logger.info(`Fetch complete.`, { feeds: dueFeeds.length, durationMs: elapsedMs });
+  logger.info(`Fetch complete.`, {
+    feeds: dueFeeds.length,
+    durationMs: elapsedMs,
+  });
 }
 
 async function processFeed(input: {
@@ -189,7 +221,11 @@ async function processFeed(input: {
         fetchErrorCount: feed.fetch_error_count + 1,
         nextFetchAt: now + retrySeconds,
       });
-      logger.warn("Feed fetch rate limited.", { feedId: feed.id, retrySeconds, url: feed.url });
+      logger.warn("Feed fetch rate limited.", {
+        feedId: feed.id,
+        retrySeconds,
+        url: feed.url,
+      });
       return;
     }
 
@@ -197,7 +233,10 @@ async function processFeed(input: {
       throw new Error(`Feed returned HTTP ${result.status}.`);
     }
 
-    const parsed = input.parser.parse(result.body, result.headers["content-type"] ?? null);
+    const parsed = input.parser.parse(
+      result.body,
+      result.headers["content-type"] ?? null,
+    );
     const enricher = new FaviconEnricher({
       currentFaviconUrl: feed.favicon_url,
       previousSiteUrl: feed.site_url,
@@ -226,7 +265,10 @@ async function processFeed(input: {
       title: enriched.feed.title ?? feed.title,
     });
 
-    if (result.redirectedPermanently && normalizeUrl(result.finalUrl) !== normalizeUrl(feed.url)) {
+    if (
+      result.redirectedPermanently &&
+      normalizeUrl(result.finalUrl) !== normalizeUrl(feed.url)
+    ) {
       await maybeUpdateCanonicalUrl(
         input.client,
         input.adminApiKey,
@@ -268,7 +310,10 @@ async function prefetchCredentials(
   const entries = await Promise.all(
     credentialFeeds.map(async (feed) => {
       try {
-        return [feed.id, await client.getFeedCredentials(fetchApiKey, feed.id)] as const;
+        return [
+          feed.id,
+          await client.getFeedCredentials(fetchApiKey, feed.id),
+        ] as const;
       } catch (error) {
         logger.warn("Failed to prefetch feed credentials.", {
           error: toErrorMessage(error),
@@ -280,18 +325,24 @@ async function prefetchCredentials(
   );
 
   return new Map(
-    entries.filter((entry): entry is readonly [number, FeedCredentials] => entry !== null),
+    entries.filter(
+      (entry): entry is readonly [number, FeedCredentials] => entry !== null,
+    ),
   );
 }
 
 function buildConditionalHeaders(feed: AdminFeed): Record<string, string> {
   return {
     ...(feed.etag === null ? {} : { "If-None-Match": feed.etag }),
-    ...(feed.last_modified === null ? {} : { "If-Modified-Since": feed.last_modified }),
+    ...(feed.last_modified === null
+      ? {}
+      : { "If-Modified-Since": feed.last_modified }),
   };
 }
 
-function buildCredentialHeaders(credential: FeedCredentials | undefined): Record<string, string> {
+function buildCredentialHeaders(
+  credential: FeedCredentials | undefined,
+): Record<string, string> {
   if (credential === undefined) {
     return {};
   }
@@ -300,9 +351,10 @@ function buildCredentialHeaders(credential: FeedCredentials | undefined): Record
   const payload = credential.credentials;
 
   if (type === "basic") {
-    const object = typeof payload === "object" && payload !== null
-      ? payload as Record<string, unknown>
-      : {};
+    const object =
+      typeof payload === "object" && payload !== null
+        ? (payload as Record<string, unknown>)
+        : {};
     const username = readCredentialString(object, ["username", "user"]);
     const password = readCredentialString(object, ["password", "pass"]);
 
@@ -316,20 +368,27 @@ function buildCredentialHeaders(credential: FeedCredentials | undefined): Record
   }
 
   if (type === "bearer") {
-    const token = typeof payload === "string"
-      ? payload
-      : typeof payload === "object" && payload !== null
-        ? readCredentialString(payload as Record<string, unknown>, ["token", "access_token"])
-        : null;
+    const token =
+      typeof payload === "string"
+        ? payload
+        : typeof payload === "object" && payload !== null
+          ? readCredentialString(payload as Record<string, unknown>, [
+              "token",
+              "access_token",
+            ])
+          : null;
 
     return token === null ? {} : { Authorization: `Bearer ${token}` };
   }
 
   if (type === "custom" && typeof payload === "object" && payload !== null) {
     const object = payload as Record<string, unknown>;
-    const headers = "headers" in object && typeof object.headers === "object" && object.headers !== null
-      ? object.headers as Record<string, unknown>
-      : object;
+    const headers =
+      "headers" in object &&
+      typeof object.headers === "object" &&
+      object.headers !== null
+        ? (object.headers as Record<string, unknown>)
+        : object;
 
     return Object.fromEntries(
       Object.entries(headers)
@@ -364,11 +423,14 @@ async function maybeUpdateCanonicalUrl(
   logger: ReturnType<typeof createLogger>,
 ): Promise<void> {
   if (adminApiKey === undefined) {
-    logger.warn("Permanent redirect detected but ADMIN_API_KEY is unavailable; skipping URL update.", {
-      feedId: feed.id,
-      from: feed.url,
-      to: finalUrl,
-    });
+    logger.warn(
+      "Permanent redirect detected but ADMIN_API_KEY is unavailable; skipping URL update.",
+      {
+        feedId: feed.id,
+        from: feed.url,
+        to: finalUrl,
+      },
+    );
     return;
   }
 
@@ -381,11 +443,14 @@ async function maybeUpdateCanonicalUrl(
     });
   } catch (error) {
     if (error instanceof ApiClientError && error.status === 409) {
-      logger.warn("Permanent redirect target conflicts with an existing feed; skipping URL update.", {
-        feedId: feed.id,
-        from: feed.url,
-        to: finalUrl,
-      });
+      logger.warn(
+        "Permanent redirect target conflicts with an existing feed; skipping URL update.",
+        {
+          feedId: feed.id,
+          from: feed.url,
+          to: finalUrl,
+        },
+      );
       return;
     }
 

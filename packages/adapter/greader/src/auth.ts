@@ -1,20 +1,20 @@
 import {
+  type AuthProvider,
+  type EntryStore,
   RATE_LIMIT_MAX_ATTEMPTS,
   RATE_LIMIT_WINDOW_SECONDS,
   TOKEN_TTL,
-  type AuthProvider,
-  type EntryStore,
 } from "@headrss/core";
 import type { Context, Hono, MiddlewareHandler } from "hono";
 
 import {
+  type AuthTokenPayload,
   badRequest,
+  type CsrfTokenPayload,
   extractClientIp,
   forbidden,
-  getFirstParam,
-  type AuthTokenPayload,
-  type CsrfTokenPayload,
   type GReaderAppEnv,
+  getFirstParam,
 } from "./shared.js";
 import type { TokenSignerLike } from "./token-signer.js";
 
@@ -81,7 +81,7 @@ export function requireCsrf(
   tokenSigner: TokenSignerLike<Record<string, unknown>>,
 ): MiddlewareHandler<GReaderAppEnv> {
   return async (c, next) => {
-    const rawToken = c.req.header("T") ?? await getFirstParam(c, "T");
+    const rawToken = c.req.header("T") ?? (await getFirstParam(c, "T"));
 
     if (rawToken === undefined) {
       forbidden("Missing CSRF token.");

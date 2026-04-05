@@ -1,7 +1,7 @@
 import {
   parseStreamId,
-  READING_LIST_STREAM_ID,
   READ_STREAM_ID,
+  READING_LIST_STREAM_ID,
   STARRED_STREAM_ID,
   toFeedStreamId,
 } from "../internal/stream-id.js";
@@ -58,7 +58,13 @@ export class InMemoryEntryStore {
   readonly insertEntriesBatchSizes: number[] = [];
   readonly getEntriesByPublicIdsBatchSizes: number[] = [];
 
-  seedUser(input: { username: string; email?: string | null; createdAt?: number } & Partial<User>): User {
+  seedUser(
+    input: {
+      username: string;
+      email?: string | null;
+      createdAt?: number;
+    } & Partial<User>,
+  ): User {
     const user: User = {
       id: input.id ?? this.nextUserId++,
       username: input.username,
@@ -111,7 +117,10 @@ export class InMemoryEntryStore {
     };
 
     this.subscriptions.set(subscription.id, subscription);
-    this.nextSubscriptionId = Math.max(this.nextSubscriptionId, subscription.id + 1);
+    this.nextSubscriptionId = Math.max(
+      this.nextSubscriptionId,
+      subscription.id + 1,
+    );
 
     return subscription;
   }
@@ -185,7 +194,9 @@ export class InMemoryEntryStore {
   }
 
   seedSubscriptionLabel(subscriptionId: number, labelId: number): void {
-    this.subscriptionLabels.add(this.subscriptionLabelKey(subscriptionId, labelId));
+    this.subscriptionLabels.add(
+      this.subscriptionLabelKey(subscriptionId, labelId),
+    );
   }
 
   seedItemLabel(userId: number, itemId: number, labelId: number): void {
@@ -197,11 +208,17 @@ export class InMemoryEntryStore {
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
-    return [...this.users.values()].find((user) => user.username === username) ?? null;
+    return (
+      [...this.users.values()].find((user) => user.username === username) ??
+      null
+    );
   }
 
   async listUsers(params: PaginationParams): Promise<User[]> {
-    return [...this.users.values()].slice(params.offset ?? 0, (params.offset ?? 0) + params.limit);
+    return [...this.users.values()].slice(
+      params.offset ?? 0,
+      (params.offset ?? 0) + params.limit,
+    );
   }
 
   async createUser(input: UserCreateInput): Promise<User> {
@@ -286,15 +303,25 @@ export class InMemoryEntryStore {
         ...existing,
         ...(input.title !== undefined ? { title: input.title } : {}),
         ...(input.siteUrl !== undefined ? { siteUrl: input.siteUrl } : {}),
-        ...(input.faviconUrl !== undefined ? { faviconUrl: input.faviconUrl } : {}),
+        ...(input.faviconUrl !== undefined
+          ? { faviconUrl: input.faviconUrl }
+          : {}),
         ...(input.etag !== undefined ? { etag: input.etag } : {}),
-        ...(input.lastModified !== undefined ? { lastModified: input.lastModified } : {}),
-        ...(input.lastFetchedAt !== undefined ? { lastFetchedAt: input.lastFetchedAt } : {}),
+        ...(input.lastModified !== undefined
+          ? { lastModified: input.lastModified }
+          : {}),
+        ...(input.lastFetchedAt !== undefined
+          ? { lastFetchedAt: input.lastFetchedAt }
+          : {}),
         ...(input.fetchErrorCount !== undefined
           ? { fetchErrorCount: input.fetchErrorCount }
           : {}),
-        ...(input.nextFetchAt !== undefined ? { nextFetchAt: input.nextFetchAt } : {}),
-        ...(input.updatedAt !== undefined ? { updatedAt: input.updatedAt } : {}),
+        ...(input.nextFetchAt !== undefined
+          ? { nextFetchAt: input.nextFetchAt }
+          : {}),
+        ...(input.updatedAt !== undefined
+          ? { updatedAt: input.updatedAt }
+          : {}),
       };
 
       this.feeds.set(updated.id, updated);
@@ -316,14 +343,22 @@ export class InMemoryEntryStore {
       ...(input.url !== undefined ? { url: input.url } : {}),
       ...(input.title !== undefined ? { title: input.title } : {}),
       ...(input.siteUrl !== undefined ? { siteUrl: input.siteUrl } : {}),
-      ...(input.faviconUrl !== undefined ? { faviconUrl: input.faviconUrl } : {}),
+      ...(input.faviconUrl !== undefined
+        ? { faviconUrl: input.faviconUrl }
+        : {}),
       ...(input.etag !== undefined ? { etag: input.etag } : {}),
-      ...(input.lastModified !== undefined ? { lastModified: input.lastModified } : {}),
-      ...(input.lastFetchedAt !== undefined ? { lastFetchedAt: input.lastFetchedAt } : {}),
+      ...(input.lastModified !== undefined
+        ? { lastModified: input.lastModified }
+        : {}),
+      ...(input.lastFetchedAt !== undefined
+        ? { lastFetchedAt: input.lastFetchedAt }
+        : {}),
       ...(input.fetchErrorCount !== undefined
         ? { fetchErrorCount: input.fetchErrorCount }
         : {}),
-      ...(input.nextFetchAt !== undefined ? { nextFetchAt: input.nextFetchAt } : {}),
+      ...(input.nextFetchAt !== undefined
+        ? { nextFetchAt: input.nextFetchAt }
+        : {}),
       ...(input.updatedAt !== undefined ? { updatedAt: input.updatedAt } : {}),
     };
 
@@ -343,9 +378,12 @@ export class InMemoryEntryStore {
     userId: number,
     feedId: number,
   ): Promise<Subscription | null> {
-    return [...this.subscriptions.values()].find(
-      (subscription) => subscription.userId === userId && subscription.feedId === feedId,
-    ) ?? null;
+    return (
+      [...this.subscriptions.values()].find(
+        (subscription) =>
+          subscription.userId === userId && subscription.feedId === feedId,
+      ) ?? null
+    );
   }
 
   async listSubscriptionsByUserId(userId: number): Promise<SubscriptionView[]> {
@@ -358,7 +396,9 @@ export class InMemoryEntryStore {
       }));
   }
 
-  async createSubscription(input: SubscriptionCreateInput): Promise<Subscription> {
+  async createSubscription(
+    input: SubscriptionCreateInput,
+  ): Promise<Subscription> {
     return this.seedSubscription(input);
   }
 
@@ -374,7 +414,9 @@ export class InMemoryEntryStore {
 
     const updated: Subscription = {
       ...subscription,
-      ...(input.customTitle !== undefined ? { customTitle: input.customTitle } : {}),
+      ...(input.customTitle !== undefined
+        ? { customTitle: input.customTitle }
+        : {}),
       ...(input.readCursorItemId !== undefined
         ? { readCursorItemId: input.readCursorItemId }
         : {}),
@@ -400,7 +442,10 @@ export class InMemoryEntryStore {
     return deleted;
   }
 
-  async setSubscriptionReadCursor(id: number, itemId: number | null): Promise<boolean> {
+  async setSubscriptionReadCursor(
+    id: number,
+    itemId: number | null,
+  ): Promise<boolean> {
     const subscription = this.subscriptions.get(id);
 
     if (subscription === undefined) {
@@ -415,7 +460,10 @@ export class InMemoryEntryStore {
     return true;
   }
 
-  async listSubscriptionIdsByLabel(userId: number, labelId: number): Promise<number[]> {
+  async listSubscriptionIdsByLabel(
+    userId: number,
+    labelId: number,
+  ): Promise<number[]> {
     const label = this.labels.get(labelId);
 
     if (label === undefined || label.userId !== userId) {
@@ -426,8 +474,9 @@ export class InMemoryEntryStore {
       .map((key) => this.parseSubscriptionLabelKey(key))
       .filter(({ labelId: currentLabelId }) => currentLabelId === labelId)
       .map(({ subscriptionId }) => subscriptionId)
-      .filter((subscriptionId): subscriptionId is number =>
-        this.subscriptions.get(subscriptionId)?.userId === userId,
+      .filter(
+        (subscriptionId): subscriptionId is number =>
+          this.subscriptions.get(subscriptionId)?.userId === userId,
       );
   }
 
@@ -436,9 +485,11 @@ export class InMemoryEntryStore {
   }
 
   async getLabelByName(userId: number, name: string): Promise<Label | null> {
-    return [...this.labels.values()].find(
-      (label) => label.userId === userId && label.name === name,
-    ) ?? null;
+    return (
+      [...this.labels.values()].find(
+        (label) => label.userId === userId && label.name === name,
+      ) ?? null
+    );
   }
 
   async listLabelsByUserId(userId: number): Promise<Label[]> {
@@ -449,7 +500,10 @@ export class InMemoryEntryStore {
     return this.seedLabel(input);
   }
 
-  async updateLabel(id: number, input: { name: string }): Promise<Label | null> {
+  async updateLabel(
+    id: number,
+    input: { name: string },
+  ): Promise<Label | null> {
     const label = this.labels.get(id);
 
     if (label === undefined) {
@@ -496,11 +550,18 @@ export class InMemoryEntryStore {
   }
 
   async addSubscriptionLabel(input: SubscriptionLabel): Promise<void> {
-    this.subscriptionLabels.add(this.subscriptionLabelKey(input.subscriptionId, input.labelId));
+    this.subscriptionLabels.add(
+      this.subscriptionLabelKey(input.subscriptionId, input.labelId),
+    );
   }
 
-  async removeSubscriptionLabel(subscriptionId: number, labelId: number): Promise<void> {
-    this.subscriptionLabels.delete(this.subscriptionLabelKey(subscriptionId, labelId));
+  async removeSubscriptionLabel(
+    subscriptionId: number,
+    labelId: number,
+  ): Promise<void> {
+    this.subscriptionLabels.delete(
+      this.subscriptionLabelKey(subscriptionId, labelId),
+    );
   }
 
   async replaceSubscriptionLabels(
@@ -516,7 +577,9 @@ export class InMemoryEntryStore {
     }
 
     for (const labelId of labelIds) {
-      this.subscriptionLabels.add(this.subscriptionLabelKey(subscriptionId, labelId));
+      this.subscriptionLabels.add(
+        this.subscriptionLabelKey(subscriptionId, labelId),
+      );
     }
   }
 
@@ -547,7 +610,10 @@ export class InMemoryEntryStore {
   }
 
   async getEntryByPublicId(publicId: string): Promise<Entry | null> {
-    return [...this.entries.values()].find((entry) => entry.publicId === publicId) ?? null;
+    return (
+      [...this.entries.values()].find((entry) => entry.publicId === publicId) ??
+      null
+    );
   }
 
   async listEntryIds(
@@ -562,7 +628,9 @@ export class InMemoryEntryStore {
         feedId: entry.feedId,
         publishedAt: entry.publishedAt,
       })),
-      ...(result.continuation === undefined ? {} : { continuation: result.continuation }),
+      ...(result.continuation === undefined
+        ? {}
+        : { continuation: result.continuation }),
     };
   }
 
@@ -573,17 +641,25 @@ export class InMemoryEntryStore {
     return this.queryEntryViews(userId, filter);
   }
 
-  async getEntriesByPublicIds(userId: number, publicIds: string[]): Promise<EntryView[]> {
+  async getEntriesByPublicIds(
+    userId: number,
+    publicIds: string[],
+  ): Promise<EntryView[]> {
     this.getEntriesByPublicIdsBatchSizes.push(publicIds.length);
 
     return publicIds
-      .map((publicId) => [...this.entries.values()].find((entry) => entry.publicId === publicId))
+      .map((publicId) =>
+        [...this.entries.values()].find((entry) => entry.publicId === publicId),
+      )
       .filter((entry): entry is Entry => entry !== undefined)
       .map((entry) => this.toEntryView(userId, entry))
       .filter((entry): entry is EntryView => entry !== null);
   }
 
-  async getEntriesByNumericIds(userId: number, ids: number[]): Promise<EntryView[]> {
+  async getEntriesByNumericIds(
+    userId: number,
+    ids: number[],
+  ): Promise<EntryView[]> {
     return ids
       .map((id) => this.entries.get(id))
       .filter((entry): entry is Entry => entry !== undefined)
@@ -591,7 +667,9 @@ export class InMemoryEntryStore {
       .filter((entry): entry is EntryView => entry !== null);
   }
 
-  async insertEntries(entries: ReadonlyArray<EntryInsertInput>): Promise<IngestResult> {
+  async insertEntries(
+    entries: ReadonlyArray<EntryInsertInput>,
+  ): Promise<IngestResult> {
     this.insertEntriesBatchSizes.push(entries.length);
 
     let inserted = 0;
@@ -617,8 +695,12 @@ export class InMemoryEntryStore {
         ...(input.author !== undefined ? { author: input.author } : {}),
         ...(input.content !== undefined ? { content: input.content } : {}),
         ...(input.summary !== undefined ? { summary: input.summary } : {}),
-        ...(input.crawlTimeMs !== undefined ? { crawlTimeMs: input.crawlTimeMs } : {}),
-        ...(input.createdAt !== undefined ? { createdAt: input.createdAt } : {}),
+        ...(input.crawlTimeMs !== undefined
+          ? { crawlTimeMs: input.crawlTimeMs }
+          : {}),
+        ...(input.createdAt !== undefined
+          ? { createdAt: input.createdAt }
+          : {}),
       });
       inserted += 1;
     }
@@ -635,16 +717,21 @@ export class InMemoryEntryStore {
     newestPublishedAt?: number,
   ): Promise<number | null> {
     const entries = [...this.entries.values()]
-      .filter((entry) =>
-        entry.feedId === feedId &&
-        (newestPublishedAt === undefined || entry.publishedAt <= newestPublishedAt),
+      .filter(
+        (entry) =>
+          entry.feedId === feedId &&
+          (newestPublishedAt === undefined ||
+            entry.publishedAt <= newestPublishedAt),
       )
       .sort((left, right) => right.id - left.id);
 
     return entries[0]?.id ?? null;
   }
 
-  async listEntriesForFeed(feedId: number, params: PaginationParams): Promise<Entry[]> {
+  async listEntriesForFeed(
+    feedId: number,
+    params: PaginationParams,
+  ): Promise<Entry[]> {
     const offset = params.offset ?? 0;
     return [...this.entries.values()]
       .filter((entry) => entry.feedId === feedId)
@@ -711,18 +798,26 @@ export class InMemoryEntryStore {
     }
   }
 
-  async getItemState(userId: number, itemId: number): Promise<ItemState | null> {
+  async getItemState(
+    userId: number,
+    itemId: number,
+  ): Promise<ItemState | null> {
     return this.itemStates.get(this.itemStateKey(userId, itemId)) ?? null;
   }
 
-  async listItemStates(userId: number, itemIds: number[]): Promise<ItemState[]> {
+  async listItemStates(
+    userId: number,
+    itemIds: number[],
+  ): Promise<ItemState[]> {
     return itemIds
       .map((itemId) => this.itemStates.get(this.itemStateKey(userId, itemId)))
       .filter((state): state is ItemState => state !== undefined);
   }
 
   async upsertItemState(input: ItemState): Promise<ItemState> {
-    this.itemStates.set(this.itemStateKey(input.userId, input.itemId), { ...input });
+    this.itemStates.set(this.itemStateKey(input.userId, input.itemId), {
+      ...input,
+    });
     return { ...input };
   }
 
@@ -735,14 +830,24 @@ export class InMemoryEntryStore {
   }
 
   async addItemLabel(input: ItemLabel): Promise<void> {
-    this.itemLabels.add(this.itemLabelKey(input.userId, input.itemId, input.labelId));
+    this.itemLabels.add(
+      this.itemLabelKey(input.userId, input.itemId, input.labelId),
+    );
   }
 
-  async removeItemLabel(userId: number, itemId: number, labelId: number): Promise<void> {
+  async removeItemLabel(
+    userId: number,
+    itemId: number,
+    labelId: number,
+  ): Promise<void> {
     this.itemLabels.delete(this.itemLabelKey(userId, itemId, labelId));
   }
 
-  async replaceItemLabels(userId: number, itemId: number, labelIds: number[]): Promise<void> {
+  async replaceItemLabels(
+    userId: number,
+    itemId: number,
+    labelIds: number[],
+  ): Promise<void> {
     for (const key of [...this.itemLabels]) {
       const [currentUserId, currentItemId] = key.split(":").map(Number);
 
@@ -756,7 +861,10 @@ export class InMemoryEntryStore {
     }
   }
 
-  async deleteItemLabelsByLabelId(userId: number, labelId: number): Promise<number> {
+  async deleteItemLabelsByLabelId(
+    userId: number,
+    labelId: number,
+  ): Promise<number> {
     let deleted = 0;
 
     for (const key of [...this.itemLabels]) {
@@ -771,7 +879,10 @@ export class InMemoryEntryStore {
     return deleted;
   }
 
-  async hasItemLabelReferences(userId: number, labelId: number): Promise<boolean> {
+  async hasItemLabelReferences(
+    userId: number,
+    labelId: number,
+  ): Promise<boolean> {
     return [...this.itemLabels].some((key) => {
       const [currentUserId, , currentLabelId] = key.split(":").map(Number);
       return currentUserId === userId && currentLabelId === labelId;
@@ -782,8 +893,10 @@ export class InMemoryEntryStore {
     const subscriptions = await this.listSubscriptionsByUserId(userId);
 
     return subscriptions.map((subscription) => {
-      const unreadEntries = [...this.entries.values()].filter((entry) =>
-        entry.feedId === subscription.feedId && !this.isEntryRead(userId, entry, subscription),
+      const unreadEntries = [...this.entries.values()].filter(
+        (entry) =>
+          entry.feedId === subscription.feedId &&
+          !this.isEntryRead(userId, entry, subscription),
       );
       const newestUnread = unreadEntries.reduce(
         (maxValue, entry) => Math.max(maxValue, entry.publishedAt),
@@ -810,7 +923,10 @@ export class InMemoryEntryStore {
     throw new Error("Not implemented in test mock.");
   }
 
-  async getRateLimit(_ip: string, _endpoint: string): Promise<RateLimit | null> {
+  async getRateLimit(
+    _ip: string,
+    _endpoint: string,
+  ): Promise<RateLimit | null> {
     throw new Error("Not implemented in test mock.");
   }
 
@@ -834,14 +950,20 @@ export class InMemoryEntryStore {
       .map((entry) => this.toEntryView(userId, entry))
       .filter((entry): entry is EntryView => entry !== null)
       .filter((entry) => this.matchesStreamFilter(userId, entry, filter))
-      .filter((entry) =>
-        filter.oldestTimestamp === undefined || entry.publishedAt > filter.oldestTimestamp,
+      .filter(
+        (entry) =>
+          filter.oldestTimestamp === undefined ||
+          entry.publishedAt > filter.oldestTimestamp,
       )
-      .filter((entry) =>
-        filter.newestTimestamp === undefined || entry.publishedAt < filter.newestTimestamp,
+      .filter(
+        (entry) =>
+          filter.newestTimestamp === undefined ||
+          entry.publishedAt < filter.newestTimestamp,
       )
       .sort((left, right) => compareEntries(left, right, filter.sortOrder))
-      .filter((entry) => this.matchesContinuation(entry, filter.continuation, filter.sortOrder));
+      .filter((entry) =>
+        this.matchesContinuation(entry, filter.continuation, filter.sortOrder),
+      );
 
     const items = matchingEntries.slice(0, filter.count);
     const lastItem = items.at(-1);
@@ -856,12 +978,17 @@ export class InMemoryEntryStore {
     return continuation === undefined ? { items } : { items, continuation };
   }
 
-  private matchesStreamFilter(userId: number, entry: EntryView, filter: StreamFilter): boolean {
+  private matchesStreamFilter(
+    userId: number,
+    entry: EntryView,
+    filter: StreamFilter,
+  ): boolean {
     if (!this.matchesStreamId(userId, entry, filter.streamId)) {
       return false;
     }
 
-    const includeTags = filter.includeTags ??
+    const includeTags =
+      filter.includeTags ??
       (filter.includeTag === undefined ? [] : [filter.includeTag]);
     for (const includeTag of includeTags) {
       if (!this.matchesTag(userId, entry, includeTag)) {
@@ -869,14 +996,21 @@ export class InMemoryEntryStore {
       }
     }
 
-    if (filter.excludeTag !== undefined && this.matchesTag(userId, entry, filter.excludeTag)) {
+    if (
+      filter.excludeTag !== undefined &&
+      this.matchesTag(userId, entry, filter.excludeTag)
+    ) {
       return false;
     }
 
     return true;
   }
 
-  private matchesStreamId(userId: number, entry: EntryView, streamId: string): boolean {
+  private matchesStreamId(
+    userId: number,
+    entry: EntryView,
+    streamId: string,
+  ): boolean {
     const parsed = parseStreamId(streamId);
     const subscription = this.getSubscriptionForEntry(userId, entry);
 
@@ -938,18 +1072,23 @@ export class InMemoryEntryStore {
     if (sortOrder === "newest") {
       return (
         entry.publishedAt < continuation.publishedAt ||
-        (entry.publishedAt === continuation.publishedAt && entry.id < continuation.id)
+        (entry.publishedAt === continuation.publishedAt &&
+          entry.id < continuation.id)
       );
     }
 
     return (
       entry.publishedAt > continuation.publishedAt ||
-      (entry.publishedAt === continuation.publishedAt && entry.id > continuation.id)
+      (entry.publishedAt === continuation.publishedAt &&
+        entry.id > continuation.id)
     );
   }
 
   private toEntryView(userId: number, entry: Entry): EntryView | null {
-    const subscription = this.getSubscriptionByUserAndFeedSync(userId, entry.feedId);
+    const subscription = this.getSubscriptionByUserAndFeedSync(
+      userId,
+      entry.feedId,
+    );
 
     if (subscription === null) {
       return null;
@@ -967,21 +1106,30 @@ export class InMemoryEntryStore {
     entry: Entry,
     subscription: Subscription,
   ): EntryStateView {
-    const state = this.itemStates.get(this.itemStateKey(userId, entry.id)) ?? null;
+    const state =
+      this.itemStates.get(this.itemStateKey(userId, entry.id)) ?? null;
     const defaultRead = entry.id <= (subscription.readCursorItemId ?? 0);
 
     return {
-      isRead: state?.isRead === 1 ? true : state?.isRead === 0 ? false : defaultRead,
+      isRead:
+        state?.isRead === 1 ? true : state?.isRead === 0 ? false : defaultRead,
       isStarred: state?.isStarred === 1,
       starredAt: state?.starredAt ?? null,
     };
   }
 
-  private isEntryRead(userId: number, entry: Entry, subscription: Subscription): boolean {
+  private isEntryRead(
+    userId: number,
+    entry: Entry,
+    subscription: Subscription,
+  ): boolean {
     return this.getEntryStateView(userId, entry, subscription).isRead;
   }
 
-  private getSubscriptionForEntry(userId: number, entry: Entry | EntryView): Subscription | null {
+  private getSubscriptionForEntry(
+    userId: number,
+    entry: Entry | EntryView,
+  ): Subscription | null {
     return this.getSubscriptionByUserAndFeedSync(userId, entry.feedId);
   }
 
@@ -989,15 +1137,21 @@ export class InMemoryEntryStore {
     userId: number,
     feedId: number,
   ): Subscription | null {
-    return [...this.subscriptions.values()].find(
-      (subscription) => subscription.userId === userId && subscription.feedId === feedId,
-    ) ?? null;
+    return (
+      [...this.subscriptions.values()].find(
+        (subscription) =>
+          subscription.userId === userId && subscription.feedId === feedId,
+      ) ?? null
+    );
   }
 
   private getSubscriptionLabels(subscriptionId: number): Label[] {
     return [...this.subscriptionLabels]
       .map((key) => this.parseSubscriptionLabelKey(key))
-      .filter(({ subscriptionId: currentSubscriptionId }) => currentSubscriptionId === subscriptionId)
+      .filter(
+        ({ subscriptionId: currentSubscriptionId }) =>
+          currentSubscriptionId === subscriptionId,
+      )
       .map(({ labelId }) => this.labels.get(labelId))
       .filter((label): label is Label => label !== undefined);
   }
@@ -1023,7 +1177,10 @@ export class InMemoryEntryStore {
     return feed;
   }
 
-  private subscriptionLabelKey(subscriptionId: number, labelId: number): string {
+  private subscriptionLabelKey(
+    subscriptionId: number,
+    labelId: number,
+  ): string {
     return `${subscriptionId}:${labelId}`;
   }
 
@@ -1031,7 +1188,11 @@ export class InMemoryEntryStore {
     return `${userId}:${itemId}`;
   }
 
-  private itemLabelKey(userId: number, itemId: number, labelId: number): string {
+  private itemLabelKey(
+    userId: number,
+    itemId: number,
+    labelId: number,
+  ): string {
     return `${userId}:${itemId}:${labelId}`;
   }
 

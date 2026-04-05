@@ -9,20 +9,19 @@ initProfile(earlyEnvName);
 
 loadEnvFile();
 
+import { VERSION } from "@headrss/core";
 import { Command } from "commander";
-
 import { HeadrssApiClient } from "./api-client.js";
-import { runLoginCommand } from "./commands/login.js";
 import { registerAdminFeedCommands } from "./commands/admin/feed.js";
 import { registerAdminOpmlCommands } from "./commands/admin/opml.js";
 import { registerAdminPasswordCommands } from "./commands/admin/password.js";
 import { registerAdminUserCommands } from "./commands/admin/user.js";
 import { registerFeedCommands } from "./commands/feed/index.js";
 import { registerFolderCommands } from "./commands/folder/index.js";
+import { runLoginCommand } from "./commands/login.js";
 import { registerSubscriptionCommands } from "./commands/subscription/index.js";
 import { createLogger } from "./log.js";
 import { toErrorMessage } from "./utils.js";
-import { VERSION } from "@headrss/core";
 
 const program = new Command();
 const client = new HeadrssApiClient();
@@ -36,7 +35,9 @@ program
 
 program
   .command("login")
-  .description("Exchange username + app password for a native API token and cache it locally")
+  .description(
+    "Exchange username + app password for a native API token and cache it locally",
+  )
   .action(async () => {
     await runLoginCommand(client);
   });

@@ -1,11 +1,15 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
-import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { createInterface } from "node:readline/promises";
 
-import { HeadrssApiClient, ApiClientError } from "./api-client.js";
+import { ApiClientError, type HeadrssApiClient } from "./api-client.js";
 import { getEnv } from "./config.js";
-import { getEnvironmentName, getLegacyTokenCachePath, getTokenCachePath } from "./profile.js";
+import {
+  getEnvironmentName,
+  getLegacyTokenCachePath,
+  getTokenCachePath,
+} from "./profile.js";
 
 interface CachedToken {
   expiresAt: number;
@@ -22,8 +26,11 @@ export async function loginAndCache(
     username: string;
   },
 ): Promise<CachedToken> {
-  const resolved = credentials ?? await resolveCredentials();
-  const token = await client.exchangeToken(resolved.username, resolved.password);
+  const resolved = credentials ?? (await resolveCredentials());
+  const token = await client.exchangeToken(
+    resolved.username,
+    resolved.password,
+  );
   const cached: CachedToken = {
     expiresAt: Math.floor(Date.now() / 1000) + token.expiresIn,
     token: token.token,
@@ -34,7 +41,9 @@ export async function loginAndCache(
   return cached;
 }
 
-export async function ensureNativeToken(client: HeadrssApiClient): Promise<string> {
+export async function ensureNativeToken(
+  client: HeadrssApiClient,
+): Promise<string> {
   const cached = await readCachedToken();
 
   if (cached !== null && isTokenValid(cached)) {
@@ -98,14 +107,23 @@ export async function readCachedToken(): Promise<CachedToken | null> {
 export async function writeCachedToken(token: CachedToken): Promise<void> {
   const tokenCachePath = getTokenCachePath();
   await mkdir(dirname(tokenCachePath), { recursive: true });
-  await writeFile(tokenCachePath, `${JSON.stringify(token, null, 2)}\n`, "utf8");
+  await writeFile(
+    tokenCachePath,
+    `${JSON.stringify(token, null, 2)}\n`,
+    "utf8",
+  );
 }
 
-export function isTokenValid(token: CachedToken, now = Math.floor(Date.now() / 1000)): boolean {
+export function isTokenValid(
+  token: CachedToken,
+  now = Math.floor(Date.now() / 1000),
+): boolean {
   return token.expiresAt > now + TOKEN_EXPIRY_SKEW_SECONDS;
 }
 
-async function readCachedTokenFromPath(path: string): Promise<CachedToken | null> {
+async function readCachedTokenFromPath(
+  path: string,
+): Promise<CachedToken | null> {
   const raw = await readFile(path, "utf8");
   const parsed = JSON.parse(raw) as Partial<CachedToken>;
 
@@ -139,15 +157,21 @@ async function resolveCredentials(): Promise<{
   }
 
   const cached = await readCachedToken();
-  const username = envUsername ?? await promptLine("Username", cached?.username);
-  const password = envPassword ?? await promptPassword("App password");
+  const username =
+    envUsername ?? (await promptLine("Username", cached?.username));
+  const password = envPassword ?? (await promptPassword("App password"));
 
   return { password, username };
 }
 
-async function promptLine(label: string, initialValue?: string): Promise<string> {
+async function promptLine(
+  label: string,
+  initialValue?: string,
+): Promise<string> {
   if (!input.isTTY || !output.isTTY) {
-    throw new Error(`Missing ${label}. Set HEADRSS_USER and HEADRSS_PASSWORD for non-interactive use.`);
+    throw new Error(
+      `Missing ${label}. Set HEADRSS_USER and HEADRSS_PASSWORD for non-interactive use.`,
+    );
   }
 
   const rl = createInterface({ input, output });
@@ -163,7 +187,9 @@ async function promptLine(label: string, initialValue?: string): Promise<string>
 
 async function promptPassword(label: string): Promise<string> {
   if (!input.isTTY || !output.isTTY) {
-    throw new Error(`Missing ${label}. Set HEADRSS_USER and HEADRSS_PASSWORD for non-interactive use.`);
+    throw new Error(
+      `Missing ${label}. Set HEADRSS_USER and HEADRSS_PASSWORD for non-interactive use.`,
+    );
   }
 
   return new Promise((resolve, reject) => {

@@ -54,8 +54,9 @@ const toStructuredError = (error: unknown): Response => {
 };
 
 const resolveOpenApiDocument = (app: unknown): Record<string, unknown> => {
-  const getOpenAPI31Document = (app as { getOpenAPI31Document?: OpenApiDocumentFactory })
-    .getOpenAPI31Document;
+  const getOpenAPI31Document = (
+    app as { getOpenAPI31Document?: OpenApiDocumentFactory }
+  ).getOpenAPI31Document;
 
   if (typeof getOpenAPI31Document === "function") {
     return getOpenAPI31Document({
@@ -85,11 +86,24 @@ export const createWorkerApp = (env: AppEnv["Bindings"]): Hono<AppEnv> => {
   const clientAuth = new LocalAuthProvider(store);
   const tokenSigner = new HmacTokenSigner(env.TOKEN_KEY);
 
-  const onFeedSubscribed = (event: import("@headrss/core").FeedSubscribedEvent) =>
-    fetchFeedOnSubscribe(store, credentialStore, event);
+  const onFeedSubscribed = (
+    event: import("@headrss/core").FeedSubscribedEvent,
+  ) => fetchFeedOnSubscribe(store, credentialStore, event);
 
-  const greader = greaderAdapter(store, clientAuth, tokenSigner, credentialStore, onFeedSubscribed);
-  const nativeApi = nativeApiAdapter(store, clientAuth, tokenSigner, credentialStore, onFeedSubscribed);
+  const greader = greaderAdapter(
+    store,
+    clientAuth,
+    tokenSigner,
+    credentialStore,
+    onFeedSubscribed,
+  );
+  const nativeApi = nativeApiAdapter(
+    store,
+    clientAuth,
+    tokenSigner,
+    credentialStore,
+    onFeedSubscribed,
+  );
   const ingest = ingestRoutes(store);
   const admin = adminRoutes(store, credentialStore);
   const openApiDocument = resolveOpenApiDocument(nativeApi);
@@ -102,11 +116,13 @@ export const createWorkerApp = (env: AppEnv["Bindings"]): Hono<AppEnv> => {
   app.get("/api/openapi.json", (c) => c.json(openApiDocument));
   app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }));
 
-  app.all("/api/google", () =>
-    new Response("Unauthorized", {
-      status: 401,
-      headers: { "Google-Bad-Token": "true" },
-    }),
+  app.all(
+    "/api/google",
+    () =>
+      new Response("Unauthorized", {
+        status: 401,
+        headers: { "Google-Bad-Token": "true" },
+      }),
   );
 
   app.route("/api/google", greader);

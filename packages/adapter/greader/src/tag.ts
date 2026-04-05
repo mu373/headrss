@@ -1,25 +1,20 @@
-import {
-  editLabel,
-  listLabels,
-  type EntryStore,
-} from "@headrss/core";
+import { type EntryStore, editLabel, listLabels } from "@headrss/core";
 import type { Hono } from "hono";
-import {
-  READ_STREAM_ID,
-  READING_LIST_STREAM_ID,
-  STARRED_STREAM_ID,
-  parseStreamId,
-  toLabelStreamId,
-} from "./stream-id.js";
-
 import { requireCsrf } from "./auth.js";
 import {
   badRequest,
+  type GReaderAppEnv,
   getFirstParam,
   getUserId,
-  type GReaderAppEnv,
   toSortId,
 } from "./shared.js";
+import {
+  parseStreamId,
+  READ_STREAM_ID,
+  READING_LIST_STREAM_ID,
+  STARRED_STREAM_ID,
+  toLabelStreamId,
+} from "./stream-id.js";
 import type { TokenSignerLike } from "./token-signer.js";
 
 interface TagRouteDependencies {

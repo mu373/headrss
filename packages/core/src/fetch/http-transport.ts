@@ -18,11 +18,16 @@ const SAFE_CROSS_ORIGIN_HEADERS = new Set([
 ]);
 
 export class HttpFetchTransport implements FetchTransport {
-  async fetch(url: string, options: TransportOptions): Promise<HttpTransportResult> {
+  async fetch(
+    url: string,
+    options: TransportOptions,
+  ): Promise<HttpTransportResult> {
     let headers = new Headers(options.headers);
     const parsed = new URL(url);
     if (parsed.username) {
-      const credentials = btoa(`${decodeURIComponent(parsed.username)}:${decodeURIComponent(parsed.password)}`);
+      const credentials = btoa(
+        `${decodeURIComponent(parsed.username)}:${decodeURIComponent(parsed.password)}`,
+      );
       headers.set("Authorization", `Basic ${credentials}`);
       parsed.username = "";
       parsed.password = "";
@@ -31,8 +36,16 @@ export class HttpFetchTransport implements FetchTransport {
     let currentUrl = parsed.toString();
     let redirectedPermanently = false;
 
-    for (let redirectCount = 0; redirectCount <= options.maxRedirects; redirectCount += 1) {
-      const response = await this.fetchOnce(currentUrl, headers, options.timeout);
+    for (
+      let redirectCount = 0;
+      redirectCount <= options.maxRedirects;
+      redirectCount += 1
+    ) {
+      const response = await this.fetchOnce(
+        currentUrl,
+        headers,
+        options.timeout,
+      );
 
       if (!REDIRECT_STATUSES.has(response.status)) {
         return {
@@ -48,23 +61,30 @@ export class HttpFetchTransport implements FetchTransport {
       const location = response.headers.get("location");
 
       if (location === null) {
-        throw new Error(`Redirect response from ${currentUrl} did not include a Location header.`);
+        throw new Error(
+          `Redirect response from ${currentUrl} did not include a Location header.`,
+        );
       }
 
       if (redirectCount === options.maxRedirects) {
-        throw new Error(`Exceeded redirect limit (${options.maxRedirects}) for ${url}.`);
+        throw new Error(
+          `Exceeded redirect limit (${options.maxRedirects}) for ${url}.`,
+        );
       }
 
       const nextUrl = new URL(location, currentUrl).toString();
       headers = isSameOrigin(currentUrl, nextUrl)
         ? headers
         : copySafeCrossOriginHeaders(headers);
-      redirectedPermanently ||= response.status === 301 || response.status === 308;
+      redirectedPermanently ||=
+        response.status === 301 || response.status === 308;
       redirectChain.push(nextUrl);
       currentUrl = nextUrl;
     }
 
-    throw new Error(`Exceeded redirect limit (${options.maxRedirects}) for ${url}.`);
+    throw new Error(
+      `Exceeded redirect limit (${options.maxRedirects}) for ${url}.`,
+    );
   }
 
   private async fetchOnce(

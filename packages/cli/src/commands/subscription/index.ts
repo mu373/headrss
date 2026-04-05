@@ -12,7 +12,9 @@ export function registerSubscriptionCommands(
   parent: Command,
   client: HeadrssApiClient,
 ): void {
-  const subscription = parent.command("subscription").description("Manage subscriptions");
+  const subscription = parent
+    .command("subscription")
+    .description("Manage subscriptions");
   registerSubscriptionListCommand(subscription, client);
   registerSubscriptionAddCommand(subscription, client);
   registerSubscriptionRemoveCommand(subscription, client);

@@ -1,4 +1,9 @@
-import type { AppPassword, AuthProvider, AuthValidationResult, EntryStore } from "@headrss/core";
+import type {
+  AppPassword,
+  AuthProvider,
+  AuthValidationResult,
+  EntryStore,
+} from "@headrss/core";
 
 const encoder = new TextEncoder();
 
@@ -6,7 +11,8 @@ const nowInSeconds = (): number => Math.floor(Date.now() / 1000);
 
 const fromBase64Url = (value: string): Uint8Array | null => {
   const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
-  const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+  const padding =
+    normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
 
   try {
     const binary = atob(`${normalized}${padding}`);
@@ -35,8 +41,14 @@ const timingSafeEqual = (left: Uint8Array, right: Uint8Array): boolean => {
   return diff === 0;
 };
 
-const hashLegacyPassword = async (plaintext: string, salt: string): Promise<Uint8Array> => {
-  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(`${salt}:${plaintext}`));
+const hashLegacyPassword = async (
+  plaintext: string,
+  salt: string,
+): Promise<Uint8Array> => {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    encoder.encode(`${salt}:${plaintext}`),
+  );
   return new Uint8Array(digest);
 };
 
@@ -71,7 +83,12 @@ const parsePasswordHash = (
   passwordHash: string,
 ):
   | { algorithm: "sha256"; salt: string; digest: Uint8Array }
-  | { algorithm: "pbkdf2"; iterations: number; salt: Uint8Array; digest: Uint8Array }
+  | {
+      algorithm: "pbkdf2";
+      iterations: number;
+      salt: Uint8Array;
+      digest: Uint8Array;
+    }
   | null => {
   const parts = passwordHash.split("$");
   const [algorithm] = parts;
@@ -194,7 +211,9 @@ export class LocalAuthProvider implements AuthProvider {
   ): Promise<boolean> {
     const appPassword = await this.#store.getAppPasswordById(appPasswordId);
 
-    return appPassword?.userId === userId &&
-      appPassword.passwordVersion === passwordVersion;
+    return (
+      appPassword?.userId === userId &&
+      appPassword.passwordVersion === passwordVersion
+    );
   }
 }

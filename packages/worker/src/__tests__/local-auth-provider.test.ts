@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-
 import type { AppPassword, EntryStore, User } from "@headrss/core";
+import { describe, expect, it, vi } from "vitest";
 
 import { LocalAuthProvider } from "../auth/local-auth-provider.js";
 
@@ -28,7 +27,11 @@ describe("LocalAuthProvider", () => {
         id: 12,
         userId: user.id,
         label: "modern",
-        passwordHash: await createPbkdf2Hash("modern-secret", 100_000, "modern-salt"),
+        passwordHash: await createPbkdf2Hash(
+          "modern-secret",
+          100_000,
+          "modern-salt",
+        ),
         passwordVersion: 3,
         lastUsedAt: null,
         createdAt: 0,
@@ -38,12 +41,16 @@ describe("LocalAuthProvider", () => {
     const store = createAuthStore(user, appPasswords, touchedIds);
     const provider = new LocalAuthProvider(store as EntryStore);
 
-    await expect(provider.validateCredentials("alice", "legacy-secret")).resolves.toEqual({
+    await expect(
+      provider.validateCredentials("alice", "legacy-secret"),
+    ).resolves.toEqual({
       userId: user.id,
       appPasswordId: 11,
       passwordVersion: 2,
     });
-    await expect(provider.validateCredentials("alice", "modern-secret")).resolves.toEqual({
+    await expect(
+      provider.validateCredentials("alice", "modern-secret"),
+    ).resolves.toEqual({
       userId: user.id,
       appPasswordId: 12,
       passwordVersion: 3,
@@ -70,10 +77,12 @@ describe("LocalAuthProvider", () => {
     const store = createAuthStore(user, [appPassword], []);
     const provider = new LocalAuthProvider(store as EntryStore);
 
-    await expect(provider.validatePasswordVersion(user.id, appPassword.id, 4)).resolves.toBe(true);
-    await expect(provider.validatePasswordVersion(user.id + 1, appPassword.id, 4)).resolves.toBe(
-      false,
-    );
+    await expect(
+      provider.validatePasswordVersion(user.id, appPassword.id, 4),
+    ).resolves.toBe(true);
+    await expect(
+      provider.validatePasswordVersion(user.id + 1, appPassword.id, 4),
+    ).resolves.toBe(false);
   });
 });
 
@@ -83,17 +92,21 @@ function createAuthStore(
   touchedIds: number[],
 ): Pick<
   EntryStore,
-  "getAppPasswordById" | "getUserByUsername" | "listAppPasswordsByUserId" | "touchAppPassword"
+  | "getAppPasswordById"
+  | "getUserByUsername"
+  | "listAppPasswordsByUserId"
+  | "touchAppPassword"
 > {
   return {
-    getAppPasswordById: vi.fn(async (id: number) =>
-      appPasswords.find((appPassword) => appPassword.id === id) ?? null
+    getAppPasswordById: vi.fn(
+      async (id: number) =>
+        appPasswords.find((appPassword) => appPassword.id === id) ?? null,
     ),
     getUserByUsername: vi.fn(async (username: string) =>
-      username === user.username ? user : null
+      username === user.username ? user : null,
     ),
     listAppPasswordsByUserId: vi.fn(async (userId: number) =>
-      appPasswords.filter((appPassword) => appPassword.userId === userId)
+      appPasswords.filter((appPassword) => appPassword.userId === userId),
     ),
     touchAppPassword: vi.fn(async (id: number) => {
       touchedIds.push(id);
@@ -102,9 +115,15 @@ function createAuthStore(
   };
 }
 
-async function createLegacyHash(password: string, salt: string): Promise<string> {
+async function createLegacyHash(
+  password: string,
+  salt: string,
+): Promise<string> {
   const digest = new Uint8Array(
-    await crypto.subtle.digest("SHA-256", encoder.encode(`${salt}:${password}`)),
+    await crypto.subtle.digest(
+      "SHA-256",
+      encoder.encode(`${salt}:${password}`),
+    ),
   );
   return `sha256$${salt}$${toBase64Url(digest)}`;
 }
@@ -143,5 +162,8 @@ function toBase64Url(bytes: Uint8Array): string {
     binary += String.fromCharCode(byte);
   }
 
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
 }

@@ -1,8 +1,3 @@
-import {
-  D1_MAX_BOUND_PARAMS,
-  INGEST_BATCH_SIZE,
-  PURGE_BATCH_SIZE,
-} from "@headrss/core";
 import type {
   AppPassword,
   AppPasswordCreateInput,
@@ -38,6 +33,11 @@ import type {
   User,
   UserCreateInput,
   UserUpdateInput,
+} from "@headrss/core";
+import {
+  D1_MAX_BOUND_PARAMS,
+  INGEST_BATCH_SIZE,
+  PURGE_BATCH_SIZE,
 } from "@headrss/core";
 
 interface UserRow {
@@ -185,10 +185,8 @@ const chunk = <T>(values: readonly T[], size: number): T[][] => {
 const placeholders = (count: number): string =>
   Array.from({ length: count }, () => "?").join(", ");
 
-const hasOwn = <T extends object>(
-  value: T,
-  key: PropertyKey,
-): key is keyof T => Object.hasOwn(value, key);
+const hasOwn = <T extends object>(value: T, key: PropertyKey): key is keyof T =>
+  Object.hasOwn(value, key);
 
 const mapUser = (row: UserRow): User => ({
   id: row.id,
@@ -389,7 +387,9 @@ export class D1EntryStore implements EntryStore {
     return row ? mapAppPassword(row) : null;
   }
 
-  public async listAppPasswordsByUserId(userId: number): Promise<AppPassword[]> {
+  public async listAppPasswordsByUserId(
+    userId: number,
+  ): Promise<AppPassword[]> {
     const rows = await this.#all<AppPasswordRow>(
       `
         SELECT id, user_id, label, password_hash, password_version, last_used_at, created_at
@@ -477,7 +477,10 @@ export class D1EntryStore implements EntryStore {
     );
   }
 
-  public async touchAppPassword(id: number, lastUsedAt: number): Promise<boolean> {
+  public async touchAppPassword(
+    id: number,
+    lastUsedAt: number,
+  ): Promise<boolean> {
     const result = await this.#run(
       "UPDATE app_passwords SET last_used_at = ? WHERE id = ?",
       [lastUsedAt, id],
@@ -486,7 +489,9 @@ export class D1EntryStore implements EntryStore {
   }
 
   public async deleteAppPassword(id: number): Promise<boolean> {
-    const result = await this.#run("DELETE FROM app_passwords WHERE id = ?", [id]);
+    const result = await this.#run("DELETE FROM app_passwords WHERE id = ?", [
+      id,
+    ]);
     return result.meta.changes > 0;
   }
 
@@ -575,7 +580,10 @@ export class D1EntryStore implements EntryStore {
     return rows.map(mapFeed);
   }
 
-  public async listDueFeeds(now: number, params: PaginationParams): Promise<Feed[]> {
+  public async listDueFeeds(
+    now: number,
+    params: PaginationParams,
+  ): Promise<Feed[]> {
     const rows = await this.#all<FeedRow>(
       `
         SELECT
@@ -714,7 +722,10 @@ export class D1EntryStore implements EntryStore {
     );
   }
 
-  public async updateFeed(id: number, input: FeedUpdateInput): Promise<Feed | null> {
+  public async updateFeed(
+    id: number,
+    input: FeedUpdateInput,
+  ): Promise<Feed | null> {
     const fields: string[] = [];
     const values: unknown[] = [];
 
@@ -929,7 +940,9 @@ export class D1EntryStore implements EntryStore {
   }
 
   public async deleteSubscription(id: number): Promise<boolean> {
-    const result = await this.#run("DELETE FROM subscriptions WHERE id = ?", [id]);
+    const result = await this.#run("DELETE FROM subscriptions WHERE id = ?", [
+      id,
+    ]);
     return result.meta.changes > 0;
   }
 
@@ -972,7 +985,10 @@ export class D1EntryStore implements EntryStore {
     return row ? mapLabel(row) : null;
   }
 
-  public async getLabelByName(userId: number, name: string): Promise<Label | null> {
+  public async getLabelByName(
+    userId: number,
+    name: string,
+  ): Promise<Label | null> {
     const row = await this.#first<LabelRow>(
       "SELECT id, user_id, name FROM labels WHERE user_id = ? AND name = ?",
       [userId, name],
@@ -1008,7 +1024,10 @@ export class D1EntryStore implements EntryStore {
     );
   }
 
-  public async updateLabel(id: number, input: LabelUpdateInput): Promise<Label | null> {
+  public async updateLabel(
+    id: number,
+    input: LabelUpdateInput,
+  ): Promise<Label | null> {
     const result = await this.#run("UPDATE labels SET name = ? WHERE id = ?", [
       input.name,
       id,
@@ -1018,7 +1037,10 @@ export class D1EntryStore implements EntryStore {
       return null;
     }
 
-    return this.#requireRow(await this.getLabelById(id), "Failed to load label.");
+    return this.#requireRow(
+      await this.getLabelById(id),
+      "Failed to load label.",
+    );
   }
 
   public async deleteLabel(id: number): Promise<boolean> {
@@ -1026,7 +1048,9 @@ export class D1EntryStore implements EntryStore {
     return result.meta.changes > 0;
   }
 
-  public async listSubscriptionLabels(subscriptionId: number): Promise<Label[]> {
+  public async listSubscriptionLabels(
+    subscriptionId: number,
+  ): Promise<Label[]> {
     const rows = await this.#all<LabelRow>(
       `
         SELECT l.id, l.user_id, l.name
@@ -1076,7 +1100,9 @@ export class D1EntryStore implements EntryStore {
     );
   }
 
-  public async deleteSubscriptionLabelsByLabelId(labelId: number): Promise<number> {
+  public async deleteSubscriptionLabelsByLabelId(
+    labelId: number,
+  ): Promise<number> {
     const result = await this.#run(
       "DELETE FROM subscription_labels WHERE label_id = ?",
       [labelId],
@@ -1084,7 +1110,9 @@ export class D1EntryStore implements EntryStore {
     return result.meta.changes;
   }
 
-  public async hasSubscriptionLabelReferences(labelId: number): Promise<boolean> {
+  public async hasSubscriptionLabelReferences(
+    labelId: number,
+  ): Promise<boolean> {
     const row = await this.#first<{ found: number }>(
       "SELECT 1 AS found FROM subscription_labels WHERE label_id = ? LIMIT 1",
       [labelId],
@@ -1454,15 +1482,16 @@ export class D1EntryStore implements EntryStore {
     feedId: number,
     newestPublishedAt?: number,
   ): Promise<number | null> {
-    const row = newestPublishedAt === undefined
-      ? await this.#first<{ id: number | null }>(
-          "SELECT MAX(id) AS id FROM items WHERE feed_id = ?",
-          [feedId],
-        )
-      : await this.#first<{ id: number | null }>(
-          "SELECT MAX(id) AS id FROM items WHERE feed_id = ? AND published_at <= ?",
-          [feedId, newestPublishedAt],
-        );
+    const row =
+      newestPublishedAt === undefined
+        ? await this.#first<{ id: number | null }>(
+            "SELECT MAX(id) AS id FROM items WHERE feed_id = ?",
+            [feedId],
+          )
+        : await this.#first<{ id: number | null }>(
+            "SELECT MAX(id) AS id FROM items WHERE feed_id = ? AND published_at <= ?",
+            [feedId, newestPublishedAt],
+          );
 
     return row?.id ?? null;
   }
@@ -1647,7 +1676,10 @@ export class D1EntryStore implements EntryStore {
     );
   }
 
-  public async deleteItemState(userId: number, itemId: number): Promise<boolean> {
+  public async deleteItemState(
+    userId: number,
+    itemId: number,
+  ): Promise<boolean> {
     const result = await this.#run(
       "DELETE FROM item_states WHERE user_id = ? AND item_id = ?",
       [userId, itemId],
@@ -1655,7 +1687,10 @@ export class D1EntryStore implements EntryStore {
     return result.meta.changes > 0;
   }
 
-  public async listItemLabels(userId: number, itemId: number): Promise<Label[]> {
+  public async listItemLabels(
+    userId: number,
+    itemId: number,
+  ): Promise<Label[]> {
     const rows = await this.#all<LabelRow>(
       `
         SELECT l.id, l.user_id, l.name
@@ -1973,7 +2008,9 @@ export class D1EntryStore implements EntryStore {
     ]);
   }
 
-  public async deleteExpiredRateLimits(cutoffTimestamp: number): Promise<number> {
+  public async deleteExpiredRateLimits(
+    cutoffTimestamp: number,
+  ): Promise<number> {
     const result = await this.#run(
       "DELETE FROM rate_limits WHERE window_start < ?",
       [cutoffTimestamp],
@@ -1985,14 +2022,19 @@ export class D1EntryStore implements EntryStore {
     sql: string,
     params: readonly unknown[],
   ): Promise<TRow | null> {
-    return (await this.#db.prepare(sql).bind(...params).first<TRow>()) ?? null;
+    return (
+      (await this.#db
+        .prepare(sql)
+        .bind(...params)
+        .first<TRow>()) ?? null
+    );
   }
 
-  async #all<TRow>(
-    sql: string,
-    params: readonly unknown[],
-  ): Promise<TRow[]> {
-    const result = await this.#db.prepare(sql).bind(...params).all<TRow>();
+  async #all<TRow>(sql: string, params: readonly unknown[]): Promise<TRow[]> {
+    const result = await this.#db
+      .prepare(sql)
+      .bind(...params)
+      .all<TRow>();
     return result.results;
   }
 
@@ -2000,7 +2042,10 @@ export class D1EntryStore implements EntryStore {
     sql: string,
     params: readonly unknown[],
   ): Promise<D1Result<Record<string, unknown>>> {
-    return this.#db.prepare(sql).bind(...params).run();
+    return this.#db
+      .prepare(sql)
+      .bind(...params)
+      .run();
   }
 
   #requireRow<T>(value: T | null, message: string): T {
@@ -2023,17 +2068,23 @@ export class D1EntryStore implements EntryStore {
     switch (scope.kind) {
       case "feed":
         joins.push("JOIN feeds f ON f.id = i.feed_id");
-        joins.push("JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?");
+        joins.push(
+          "JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?",
+        );
         params.push(userId);
         conditions.push("f.url = ?");
         params.push(scope.feedUrl);
         break;
       case "reading-list":
-        joins.push("JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?");
+        joins.push(
+          "JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?",
+        );
         params.push(userId);
         break;
       case "label":
-        joins.push("JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?");
+        joins.push(
+          "JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?",
+        );
         joins.push("JOIN subscription_labels sl ON sl.subscription_id = s.id");
         joins.push(
           "JOIN labels stream_label ON stream_label.id = sl.label_id AND stream_label.user_id = ?",
@@ -2043,11 +2094,15 @@ export class D1EntryStore implements EntryStore {
         params.push(scope.labelName);
         break;
       case "read":
-        joins.push("JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?");
+        joins.push(
+          "JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?",
+        );
         params.push(userId);
         break;
       case "starred":
-        joins.push("LEFT JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?");
+        joins.push(
+          "LEFT JOIN subscriptions s ON s.feed_id = i.feed_id AND s.user_id = ?",
+        );
         params.push(userId);
         break;
     }
@@ -2084,7 +2139,8 @@ export class D1EntryStore implements EntryStore {
       params.push(filter.continuation.publishedAt, filter.continuation.id);
     }
 
-    const includeTags = filter.includeTags ??
+    const includeTags =
+      filter.includeTags ??
       (filter.includeTag === undefined ? [] : [filter.includeTag]);
     for (const tag of includeTags) {
       const includeTag = this.#buildTagCondition(userId, tag, false);
@@ -2093,7 +2149,11 @@ export class D1EntryStore implements EntryStore {
     }
 
     if (filter.excludeTag) {
-      const excludeTag = this.#buildTagCondition(userId, filter.excludeTag, true);
+      const excludeTag = this.#buildTagCondition(
+        userId,
+        filter.excludeTag,
+        true,
+      );
       conditions.push(excludeTag.sql);
       params.push(...excludeTag.params);
     }

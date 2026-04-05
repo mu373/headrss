@@ -1,4 +1,9 @@
-import type { Enricher, EnrichResult, FeedMeta, ParsedItem } from "@headrss/core";
+import type {
+  Enricher,
+  EnrichResult,
+  FeedMeta,
+  ParsedItem,
+} from "@headrss/core";
 
 interface FaviconEnricherOptions {
   currentFaviconUrl: string | null;
@@ -50,7 +55,10 @@ export class FaviconEnricher implements Enricher {
   }
 }
 
-async function discoverFavicon(siteUrl: string, timeoutMs: number): Promise<string | null> {
+async function discoverFavicon(
+  siteUrl: string,
+  timeoutMs: number,
+): Promise<string | null> {
   const directFaviconUrl = new URL("/favicon.ico", siteUrl).toString();
 
   if (await canFetch(directFaviconUrl, timeoutMs)) {
@@ -75,9 +83,7 @@ async function discoverFavicon(siteUrl: string, timeoutMs: number): Promise<stri
 
     try {
       return new URL(href, siteUrl).toString();
-    } catch {
-      continue;
-    }
+    } catch {}
   }
 
   return null;
@@ -103,7 +109,10 @@ async function canFetch(url: string, timeoutMs: number): Promise<boolean> {
   }
 }
 
-async function fetchText(url: string, timeoutMs: number): Promise<string | null> {
+async function fetchText(
+  url: string,
+  timeoutMs: number,
+): Promise<string | null> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 

@@ -9,15 +9,22 @@ describe("extractFeedCredentials", () => {
   });
 
   it("extracts and strips basic credentials", () => {
-    const result = extractFeedCredentials("https://user:pass@example.com/feed.xml");
+    const result = extractFeedCredentials(
+      "https://user:pass@example.com/feed.xml",
+    );
     expect(result.url).toBe("https://example.com/feed.xml");
     expect(result.credentials).toEqual({ username: "user", password: "pass" });
   });
 
   it("decodes URL-encoded credentials", () => {
-    const result = extractFeedCredentials("https://user%40domain:p%40ss%3Aword@example.com/feed.xml");
+    const result = extractFeedCredentials(
+      "https://user%40domain:p%40ss%3Aword@example.com/feed.xml",
+    );
     expect(result.url).toBe("https://example.com/feed.xml");
-    expect(result.credentials).toEqual({ username: "user@domain", password: "p@ss:word" });
+    expect(result.credentials).toEqual({
+      username: "user@domain",
+      password: "p@ss:word",
+    });
   });
 
   it("handles username-only (no password)", () => {
@@ -27,13 +34,17 @@ describe("extractFeedCredentials", () => {
   });
 
   it("preserves path, query, and fragment", () => {
-    const result = extractFeedCredentials("https://user:pass@example.com/path/feed.xml?key=val#frag");
+    const result = extractFeedCredentials(
+      "https://user:pass@example.com/path/feed.xml?key=val#frag",
+    );
     expect(result.url).toBe("https://example.com/path/feed.xml?key=val#frag");
     expect(result.credentials).toEqual({ username: "user", password: "pass" });
   });
 
   it("preserves port", () => {
-    const result = extractFeedCredentials("https://user:pass@example.com:8443/feed.xml");
+    const result = extractFeedCredentials(
+      "https://user:pass@example.com:8443/feed.xml",
+    );
     expect(result.url).toBe("https://example.com:8443/feed.xml");
     expect(result.credentials).toEqual({ username: "user", password: "pass" });
   });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createWorkerApp, type AppEnv } from "../index.js";
+import { type AppEnv, createWorkerApp } from "../index.js";
 
 const env: AppEnv["Bindings"] = {
   DB: {} as D1Database,

@@ -54,8 +54,15 @@ describe("editLabel", () => {
     const user = store.seedUser({ username: "alice" });
     const feed = store.seedFeed({ url: "https://example.com/feed.xml" });
     const label = store.seedLabel({ userId: user.id, name: "Work" });
-    const subscription = store.seedSubscription({ userId: user.id, feedId: feed.id });
-    const entry = store.seedEntry({ feedId: feed.id, publicId: "entry-1", publishedAt: 100 });
+    const subscription = store.seedSubscription({
+      userId: user.id,
+      feedId: feed.id,
+    });
+    const entry = store.seedEntry({
+      feedId: feed.id,
+      publicId: "entry-1",
+      publishedAt: 100,
+    });
 
     store.seedSubscriptionLabel(subscription.id, label.id);
     store.seedItemLabel(user.id, entry.id, label.id);
@@ -77,8 +84,15 @@ describe("editLabel", () => {
     const user = store.seedUser({ username: "alice" });
     const feed = store.seedFeed({ url: "https://example.com/feed.xml" });
     const label = store.seedLabel({ userId: user.id, name: "Work" });
-    const subscription = store.seedSubscription({ userId: user.id, feedId: feed.id });
-    const entry = store.seedEntry({ feedId: feed.id, publicId: "entry-1", publishedAt: 100 });
+    const subscription = store.seedSubscription({
+      userId: user.id,
+      feedId: feed.id,
+    });
+    const entry = store.seedEntry({
+      feedId: feed.id,
+      publicId: "entry-1",
+      publishedAt: 100,
+    });
 
     store.seedSubscriptionLabel(subscription.id, label.id);
     store.seedItemLabel(user.id, entry.id, label.id);
@@ -91,7 +105,9 @@ describe("editLabel", () => {
     });
 
     expect(await store.listItemLabels(user.id, entry.id)).toEqual([]);
-    expect(await store.listSubscriptionLabels(subscription.id)).toEqual([label]);
+    expect(await store.listSubscriptionLabels(subscription.id)).toEqual([
+      label,
+    ]);
     expect(await store.getLabelById(label.id)).toEqual(label);
   });
 });

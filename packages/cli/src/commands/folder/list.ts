@@ -1,7 +1,6 @@
 import type { Command } from "commander";
-
-import { withNativeToken } from "../../auth.js";
 import type { HeadrssApiClient } from "../../api-client.js";
+import { withNativeToken } from "../../auth.js";
 import { printJson } from "../../utils.js";
 
 export function registerFolderListCommand(
@@ -12,6 +11,10 @@ export function registerFolderListCommand(
     .command("list")
     .description("List folders")
     .action(async () => {
-      printJson(await withNativeToken(client, async (token) => client.listFolders(token)));
+      printJson(
+        await withNativeToken(client, async (token) =>
+          client.listFolders(token),
+        ),
+      );
     });
 }

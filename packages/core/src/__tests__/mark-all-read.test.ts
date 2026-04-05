@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { markAllRead } from "../commands/mark-all-read.js";
-import { READING_LIST_STREAM_ID, toLabelStreamId } from "../internal/stream-id.js";
+import {
+  READING_LIST_STREAM_ID,
+  toLabelStreamId,
+} from "../internal/stream-id.js";
 import type { EntryStore } from "../ports/entry-store.js";
 import { InMemoryEntryStore } from "../test-support/entry-store.mock.js";
 
@@ -10,10 +13,26 @@ describe("markAllRead", () => {
     const store = new InMemoryEntryStore();
     const user = store.seedUser({ username: "alice" });
     const feed = store.seedFeed({ url: "https://example.com/feed.xml" });
-    const first = store.seedEntry({ feedId: feed.id, publicId: "entry-1", publishedAt: 100 });
-    const second = store.seedEntry({ feedId: feed.id, publicId: "entry-2", publishedAt: 200 });
-    const third = store.seedEntry({ feedId: feed.id, publicId: "entry-3", publishedAt: 400 });
-    const fourth = store.seedEntry({ feedId: feed.id, publicId: "entry-4", publishedAt: 150 });
+    const first = store.seedEntry({
+      feedId: feed.id,
+      publicId: "entry-1",
+      publishedAt: 100,
+    });
+    const second = store.seedEntry({
+      feedId: feed.id,
+      publicId: "entry-2",
+      publishedAt: 200,
+    });
+    const third = store.seedEntry({
+      feedId: feed.id,
+      publicId: "entry-3",
+      publishedAt: 400,
+    });
+    const fourth = store.seedEntry({
+      feedId: feed.id,
+      publicId: "entry-4",
+      publishedAt: 150,
+    });
     const subscription = store.seedSubscription({
       userId: user.id,
       feedId: feed.id,
@@ -71,8 +90,16 @@ describe("markAllRead", () => {
 
     store.seedSubscriptionLabel(subA.id, label.id);
     store.seedSubscriptionLabel(subB.id, label.id);
-    const entryA = store.seedEntry({ feedId: feedA.id, publicId: "a-1", publishedAt: 100 });
-    const entryB = store.seedEntry({ feedId: feedB.id, publicId: "b-1", publishedAt: 200 });
+    const entryA = store.seedEntry({
+      feedId: feedA.id,
+      publicId: "a-1",
+      publishedAt: 100,
+    });
+    const entryB = store.seedEntry({
+      feedId: feedB.id,
+      publicId: "b-1",
+      publishedAt: 200,
+    });
 
     await markAllRead(store as unknown as EntryStore, {
       userId: user.id,
@@ -95,8 +122,16 @@ describe("markAllRead", () => {
     const subA = store.seedSubscription({ userId: user.id, feedId: feedA.id });
     const subB = store.seedSubscription({ userId: user.id, feedId: feedB.id });
 
-    const entryA = store.seedEntry({ feedId: feedA.id, publicId: "a-1", publishedAt: 100 });
-    const entryB = store.seedEntry({ feedId: feedB.id, publicId: "b-1", publishedAt: 200 });
+    const entryA = store.seedEntry({
+      feedId: feedA.id,
+      publicId: "a-1",
+      publishedAt: 100,
+    });
+    const entryB = store.seedEntry({
+      feedId: feedB.id,
+      publicId: "b-1",
+      publishedAt: 200,
+    });
 
     await markAllRead(store as unknown as EntryStore, {
       userId: user.id,
@@ -115,9 +150,21 @@ describe("markAllRead", () => {
     const store = new InMemoryEntryStore();
     const user = store.seedUser({ username: "alice" });
     const feed = store.seedFeed({ url: "https://example.com/feed.xml" });
-    const first = store.seedEntry({ feedId: feed.id, publicId: "entry-1", publishedAt: 100 });
-    const second = store.seedEntry({ feedId: feed.id, publicId: "entry-2", publishedAt: 200 });
-    const third = store.seedEntry({ feedId: feed.id, publicId: "entry-3", publishedAt: 300 });
+    const first = store.seedEntry({
+      feedId: feed.id,
+      publicId: "entry-1",
+      publishedAt: 100,
+    });
+    const second = store.seedEntry({
+      feedId: feed.id,
+      publicId: "entry-2",
+      publishedAt: 200,
+    });
+    const third = store.seedEntry({
+      feedId: feed.id,
+      publicId: "entry-3",
+      publishedAt: 300,
+    });
     const subscription = store.seedSubscription({
       userId: user.id,
       feedId: feed.id,

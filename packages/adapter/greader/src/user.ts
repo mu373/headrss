@@ -1,11 +1,7 @@
-import { getUserInfo, type EntryStore } from "@headrss/core";
+import { type EntryStore, getUserInfo } from "@headrss/core";
 import type { Hono } from "hono";
 
-import {
-  getUserId,
-  notFound,
-  type GReaderAppEnv,
-} from "./shared.js";
+import { type GReaderAppEnv, getUserId, notFound } from "./shared.js";
 
 interface UserRouteDependencies {
   store: EntryStore;

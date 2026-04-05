@@ -230,10 +230,7 @@ export interface EntryStore {
     userId: number,
     publicIds: string[],
   ): Promise<EntryView[]>;
-  getEntriesByNumericIds(
-    userId: number,
-    ids: number[],
-  ): Promise<EntryView[]>;
+  getEntriesByNumericIds(userId: number, ids: number[]): Promise<EntryView[]>;
   insertEntries(
     entries: ReadonlyArray<EntryInsertInput>,
   ): Promise<IngestResult>;

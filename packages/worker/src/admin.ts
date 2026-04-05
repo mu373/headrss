@@ -12,14 +12,14 @@ import {
   extractFeedCredentials,
   groupImportedFeeds,
   MAX_OPML_FEEDS,
-  OpmlParseError,
   OPML_BATCH_SIZE,
+  OpmlParseError,
   parseOpml,
   RATE_LIMIT_WINDOW_SECONDS,
 } from "@headrss/core";
 import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
-import { z, ZodError } from "zod";
+import { ZodError, z } from "zod";
 
 interface AdminBindings {
   ADMIN_API_KEY?: string;
@@ -52,11 +52,19 @@ const encoder = new TextEncoder();
 
 const nullableStringSchema = z.union([z.string(), z.null()]);
 const nullableUrlSchema = z.union([z.string().url(), z.null()]);
-const nullableTimestampSchema = z.union([z.coerce.number().int().nonnegative(), z.null()]);
+const nullableTimestampSchema = z.union([
+  z.coerce.number().int().nonnegative(),
+  z.null(),
+]);
 
 const paginationSchema = z
   .object({
-    limit: z.coerce.number().int().min(1).max(ADMIN_MAX_LIMIT).default(ADMIN_DEFAULT_LIMIT),
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(ADMIN_MAX_LIMIT)
+      .default(ADMIN_DEFAULT_LIMIT),
     offset: z.coerce.number().int().min(0).default(0),
   })
   .strict();
@@ -143,7 +151,11 @@ const recountSchema = z
 
 const purgeSchema = z
   .object({
-    retention_days: z.coerce.number().int().positive().default(DEFAULT_RETENTION_DAYS),
+    retention_days: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(DEFAULT_RETENTION_DAYS),
   })
   .strict()
   .default({ retention_days: DEFAULT_RETENTION_DAYS });
@@ -268,7 +280,11 @@ const serializeAppPassword = (password: AppPassword) => ({
   created_at: password.createdAt,
 });
 
-const serializePagination = <TItem>(items: TItem[], limit: number, offset: number) => ({
+const serializePagination = <TItem>(
+  items: TItem[],
+  limit: number,
+  offset: number,
+) => ({
   items,
   limit,
   offset,
@@ -303,7 +319,10 @@ const toBase64Url = (bytes: Uint8Array): string => {
     binary += String.fromCharCode(byte);
   }
 
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
 };
 
 const hashPassword = async (plaintext: string): Promise<string> => {
@@ -336,7 +355,9 @@ const normalizeAdminPath = (pathname: string): string => {
     return "/";
   }
 
-  return pathname.startsWith("/admin/") ? pathname.slice("/admin".length) : pathname;
+  return pathname.startsWith("/admin/")
+    ? pathname.slice("/admin".length)
+    : pathname;
 };
 
 const isFetchScopeRoute = (pathname: string, method: string): boolean => {
@@ -359,7 +380,10 @@ export function scopedAdminAuth(
     const authorization = c.req.header("Authorization");
     if (authorization === undefined || !authorization.startsWith("Bearer ")) {
       return c.json(
-        jsonError("unauthorized", "Authorization header must be a Bearer token."),
+        jsonError(
+          "unauthorized",
+          "Authorization header must be a Bearer token.",
+        ),
         401,
       );
     }
@@ -373,7 +397,10 @@ export function scopedAdminAuth(
         token === fetchApiKey);
 
     if (!isAllowed) {
-      return c.json(jsonError("forbidden", "Invalid API key for this route."), 403);
+      return c.json(
+        jsonError("forbidden", "Invalid API key for this route."),
+        403,
+      );
     }
 
     await next();
@@ -388,7 +415,10 @@ const loadFeedCredentialFlags = async (
   credStore: FeedCredentialStore,
 ): Promise<Map<number, boolean>> => {
   const values = await Promise.all(
-    feeds.map(async (feed) => [feed.id, (await credStore.get(feed.id)) !== null] as const),
+    feeds.map(
+      async (feed) =>
+        [feed.id, (await credStore.get(feed.id)) !== null] as const,
+    ),
   );
   return new Map(values);
 };
@@ -417,31 +447,38 @@ export const adminRoutes = (
 
   app.onError((error, c) => {
     if (error instanceof ApiError) {
-      return new Response(JSON.stringify(jsonError(error.code, error.message)), {
-        status: error.status,
-        headers: {
-          "content-type": "application/json; charset=utf-8",
+      return new Response(
+        JSON.stringify(jsonError(error.code, error.message)),
+        {
+          status: error.status,
+          headers: {
+            "content-type": "application/json; charset=utf-8",
+          },
         },
-      });
+      );
     }
 
     if (error instanceof ZodError) {
-      return c.json(jsonError("validation_error", validationMessage(error)), 400);
+      return c.json(
+        jsonError("validation_error", validationMessage(error)),
+        400,
+      );
     }
 
     if (isUniqueConstraintError(error)) {
       return c.json(
-        jsonError("conflict", "The requested resource conflicts with existing data."),
+        jsonError(
+          "conflict",
+          "The requested resource conflicts with existing data.",
+        ),
         409,
       );
     }
 
     console.error(error);
-    const message = error instanceof Error ? error.message : "An unexpected error occurred.";
-    return c.json(
-      jsonError("internal_error", message),
-      500,
-    );
+    const message =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
+    return c.json(jsonError("internal_error", message), 500);
   });
 
   app.notFound((c) => c.json(jsonError("not_found", "Route not found."), 404));
@@ -480,14 +517,22 @@ export const adminRoutes = (
       url: body.url,
       ...(body.title !== undefined ? { title: body.title } : {}),
       ...(body.site_url !== undefined ? { siteUrl: body.site_url } : {}),
-      ...(body.favicon_url !== undefined ? { faviconUrl: body.favicon_url } : {}),
+      ...(body.favicon_url !== undefined
+        ? { faviconUrl: body.favicon_url }
+        : {}),
       ...(body.etag !== undefined ? { etag: body.etag } : {}),
-      ...(body.last_modified !== undefined ? { lastModified: body.last_modified } : {}),
-      ...(body.last_fetched_at !== undefined ? { lastFetchedAt: body.last_fetched_at } : {}),
+      ...(body.last_modified !== undefined
+        ? { lastModified: body.last_modified }
+        : {}),
+      ...(body.last_fetched_at !== undefined
+        ? { lastFetchedAt: body.last_fetched_at }
+        : {}),
       ...(body.fetch_error_count !== undefined
         ? { fetchErrorCount: body.fetch_error_count }
         : {}),
-      ...(body.next_fetch_at !== undefined ? { nextFetchAt: body.next_fetch_at } : {}),
+      ...(body.next_fetch_at !== undefined
+        ? { nextFetchAt: body.next_fetch_at }
+        : {}),
     });
 
     return c.json(serializeFeed(feed, false), 201);
@@ -500,14 +545,22 @@ export const adminRoutes = (
       ...(body.url !== undefined ? { url: body.url } : {}),
       ...(body.title !== undefined ? { title: body.title } : {}),
       ...(body.site_url !== undefined ? { siteUrl: body.site_url } : {}),
-      ...(body.favicon_url !== undefined ? { faviconUrl: body.favicon_url } : {}),
+      ...(body.favicon_url !== undefined
+        ? { faviconUrl: body.favicon_url }
+        : {}),
       ...(body.etag !== undefined ? { etag: body.etag } : {}),
-      ...(body.last_modified !== undefined ? { lastModified: body.last_modified } : {}),
-      ...(body.last_fetched_at !== undefined ? { lastFetchedAt: body.last_fetched_at } : {}),
+      ...(body.last_modified !== undefined
+        ? { lastModified: body.last_modified }
+        : {}),
+      ...(body.last_fetched_at !== undefined
+        ? { lastFetchedAt: body.last_fetched_at }
+        : {}),
       ...(body.fetch_error_count !== undefined
         ? { fetchErrorCount: body.fetch_error_count }
         : {}),
-      ...(body.next_fetch_at !== undefined ? { nextFetchAt: body.next_fetch_at } : {}),
+      ...(body.next_fetch_at !== undefined
+        ? { nextFetchAt: body.next_fetch_at }
+        : {}),
       updatedAt: nowSeconds(),
     });
 
@@ -534,13 +587,7 @@ export const adminRoutes = (
     const { limit, offset } = parseQuery(c, paginationSchema);
     const users = await store.listUsers({ limit, offset });
 
-    return c.json(
-      serializePagination(
-        users.map(serializeUser),
-        limit,
-        offset,
-      ),
-    );
+    return c.json(serializePagination(users.map(serializeUser), limit, offset));
   });
 
   app.post("/users", async (c) => {
@@ -733,7 +780,9 @@ export const adminRoutes = (
     }
 
     const labelByName = new Map<string, Label>();
-    const labelNames = [...new Set(feeds.flatMap((feed) => feed.labelNames))].sort();
+    const labelNames = [
+      ...new Set(feeds.flatMap((feed) => feed.labelNames)),
+    ].sort();
 
     for (const labelName of labelNames) {
       const existing = await store.getLabelByName(body.user_id, labelName);
@@ -761,7 +810,9 @@ export const adminRoutes = (
     for (const [batchIndex, batch] of batches.entries()) {
       try {
         for (const feedInput of batch) {
-          const { url: strippedUrl, credentials } = extractFeedCredentials(feedInput.url);
+          const { url: strippedUrl, credentials } = extractFeedCredentials(
+            feedInput.url,
+          );
           const feed = await store.upsertFeed({
             url: strippedUrl,
             title: feedInput.title,
@@ -771,7 +822,10 @@ export const adminRoutes = (
 
           if (credentials !== null) {
             const encoded = new TextEncoder().encode(
-              JSON.stringify({ username: credentials.username, password: credentials.password }),
+              JSON.stringify({
+                username: credentials.username,
+                password: credentials.password,
+              }),
             );
             const plaintext = new Uint8Array(encoded);
             await credStore.set(feed.id, {
@@ -792,7 +846,9 @@ export const adminRoutes = (
             }));
 
           const labelIds = new Set(
-            (await store.listSubscriptionLabels(subscription.id)).map((label) => label.id),
+            (await store.listSubscriptionLabels(subscription.id)).map(
+              (label) => label.id,
+            ),
           );
 
           for (const labelName of feedInput.labelNames) {
@@ -823,7 +879,8 @@ export const adminRoutes = (
           size: batch.length,
           status: "failed",
           imported: 0,
-          error: error instanceof Error ? error.message : "Unknown batch failure.",
+          error:
+            error instanceof Error ? error.message : "Unknown batch failure.",
         });
 
         return c.json(

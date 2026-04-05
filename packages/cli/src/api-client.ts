@@ -141,7 +141,10 @@ export class HeadrssApiClient {
     return this.#baseUrl;
   }
 
-  async exchangeToken(username: string, password: string): Promise<TokenResponse> {
+  async exchangeToken(
+    username: string,
+    password: string,
+  ): Promise<TokenResponse> {
     return this.request<TokenResponse>({
       auth: { kind: "native", token: "" },
       body: { username, password },
@@ -150,7 +153,9 @@ export class HeadrssApiClient {
     });
   }
 
-  async listSubscriptions(token: string): Promise<{ items: NativeSubscription[] }> {
+  async listSubscriptions(
+    token: string,
+  ): Promise<{ items: NativeSubscription[] }> {
     return this.request({
       auth: { kind: "native", token },
       path: "/api/native/v0/subscriptions",
@@ -164,11 +169,14 @@ export class HeadrssApiClient {
     const headers = new Headers();
     headers.set("Authorization", `Bearer ${token}`);
     headers.set("Content-Type", "text/xml");
-    const response = await fetch(new URL("/api/native/v0/subscriptions/import", this.baseUrl), {
-      body: opml,
-      headers,
-      method: "POST",
-    });
+    const response = await fetch(
+      new URL("/api/native/v0/subscriptions/import", this.baseUrl),
+      {
+        body: opml,
+        headers,
+        method: "POST",
+      },
+    );
     const parsedBody = await parseResponseBody(response);
     if (response.status !== 200) {
       throw new ApiClientError(
@@ -183,10 +191,13 @@ export class HeadrssApiClient {
   async exportOpmlNative(token: string): Promise<string> {
     const headers = new Headers();
     headers.set("Authorization", `Bearer ${token}`);
-    const response = await fetch(new URL("/api/native/v0/subscriptions/export", this.baseUrl), {
-      headers,
-      method: "GET",
-    });
+    const response = await fetch(
+      new URL("/api/native/v0/subscriptions/export", this.baseUrl),
+      {
+        headers,
+        method: "GET",
+      },
+    );
     if (response.status !== 200) {
       const body = await response.text();
       throw new ApiClientError(response.status, body, body);
@@ -231,7 +242,10 @@ export class HeadrssApiClient {
     });
   }
 
-  async deleteSubscriptionCredentials(token: string, id: number): Promise<{ ok: true }> {
+  async deleteSubscriptionCredentials(
+    token: string,
+    id: number,
+  ): Promise<{ ok: true }> {
     return this.request({
       auth: { kind: "native", token },
       method: "DELETE",
@@ -263,7 +277,11 @@ export class HeadrssApiClient {
     });
   }
 
-  async renameFolder(token: string, id: number, name: string): Promise<NativeLabel> {
+  async renameFolder(
+    token: string,
+    id: number,
+    name: string,
+  ): Promise<NativeLabel> {
     return this.request({
       auth: { kind: "native", token },
       body: { name },
@@ -293,7 +311,10 @@ export class HeadrssApiClient {
     });
   }
 
-  async deleteUser(apiKey: string, id: number): Promise<{ deleted: true; id: number }> {
+  async deleteUser(
+    apiKey: string,
+    id: number,
+  ): Promise<{ deleted: true; id: number }> {
     return this.request({
       auth: { kind: "admin", apiKey },
       method: "DELETE",
@@ -301,7 +322,10 @@ export class HeadrssApiClient {
     });
   }
 
-  async listAppPasswords(apiKey: string, userId: number): Promise<{
+  async listAppPasswords(
+    apiKey: string,
+    userId: number,
+  ): Promise<{
     items: AdminAppPassword[];
     user_id: number;
   }> {
@@ -353,7 +377,10 @@ export class HeadrssApiClient {
     });
   }
 
-  async deleteFeed(apiKey: string, id: number): Promise<{ deleted: true; id: number }> {
+  async deleteFeed(
+    apiKey: string,
+    id: number,
+  ): Promise<{ deleted: true; id: number }> {
     return this.request({
       auth: { kind: "admin", apiKey },
       method: "DELETE",
@@ -376,7 +403,10 @@ export class HeadrssApiClient {
     });
   }
 
-  async getFeedCredentials(apiKey: string, feedId: number): Promise<FeedCredentials> {
+  async getFeedCredentials(
+    apiKey: string,
+    feedId: number,
+  ): Promise<FeedCredentials> {
     return this.request({
       auth: { kind: "fetch", apiKey },
       path: `/admin/feeds/${feedId}/credentials`,
@@ -480,7 +510,11 @@ export class HeadrssApiClient {
   private async request<T>(options: RequestOptions): Promise<T> {
     const headers = new Headers(options.headers);
 
-    if (options.auth.kind === "admin" || options.auth.kind === "fetch" || options.auth.kind === "ingest") {
+    if (
+      options.auth.kind === "admin" ||
+      options.auth.kind === "fetch" ||
+      options.auth.kind === "ingest"
+    ) {
       headers.set("Authorization", `Bearer ${options.auth.apiKey}`);
     } else if (options.auth.token.length > 0) {
       headers.set("Authorization", `Bearer ${options.auth.token}`);
@@ -505,7 +539,11 @@ export class HeadrssApiClient {
       : [options.expectedStatus ?? 200];
 
     if (!expected.includes(response.status)) {
-      throw new ApiClientError(response.status, getErrorMessage(parsedBody, response), parsedBody);
+      throw new ApiClientError(
+        response.status,
+        getErrorMessage(parsedBody, response),
+        parsedBody,
+      );
     }
 
     return parsedBody as T;

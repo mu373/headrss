@@ -135,7 +135,9 @@ export function parseOpml(xml: string): ImportedFeedOutline[] {
   walk(toArray(body.outline), []);
 
   if (outlines.length === 0) {
-    throw new OpmlParseError("No feed outlines were found in the OPML document.");
+    throw new OpmlParseError(
+      "No feed outlines were found in the OPML document.",
+    );
   }
 
   return outlines;
@@ -160,13 +162,18 @@ export function groupImportedFeeds(
 
     existing.title ??= feed.title;
     existing.siteUrl ??= feed.siteUrl;
-    existing.labelNames = [...new Set([...existing.labelNames, ...feed.labels])];
+    existing.labelNames = [
+      ...new Set([...existing.labelNames, ...feed.labels]),
+    ];
   }
 
   return [...grouped.values()];
 }
 
-export function buildOpml(user: User, subscriptions: SubscriptionView[]): string {
+export function buildOpml(
+  user: User,
+  subscriptions: SubscriptionView[],
+): string {
   const folders = new Map<string, SubscriptionView[]>();
   const unfiled: SubscriptionView[] = [];
 

@@ -13,9 +13,10 @@ export function registerFeedPurgeCommand(
     .option("--retention-days <days>", "Override RETENTION_DAYS")
     .description("Purge old items")
     .action(async (options: { retentionDays?: string }) => {
-      const retentionDays = options.retentionDays === undefined
-        ? getRetentionDays()
-        : Number.parseInt(options.retentionDays, 10);
+      const retentionDays =
+        options.retentionDays === undefined
+          ? getRetentionDays()
+          : Number.parseInt(options.retentionDays, 10);
 
       printJson(await client.purge(requireEnv("ADMIN_API_KEY"), retentionDays));
     });

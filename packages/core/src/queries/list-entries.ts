@@ -1,4 +1,8 @@
-import type { EntryStore, PaginatedResult, EntryView } from "../ports/entry-store.js";
+import type {
+  EntryStore,
+  EntryView,
+  PaginatedResult,
+} from "../ports/entry-store.js";
 import type { StreamFilter } from "../types.js";
 
 export async function listEntries(

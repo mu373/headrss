@@ -1,7 +1,6 @@
 import type { Command } from "commander";
-
-import { withNativeToken } from "../../auth.js";
 import type { HeadrssApiClient } from "../../api-client.js";
+import { withNativeToken } from "../../auth.js";
 import { printJson } from "../../utils.js";
 
 export function registerSubscriptionRemoveCommand(
@@ -15,7 +14,8 @@ export function registerSubscriptionRemoveCommand(
     .action(async (id: string) => {
       printJson(
         await withNativeToken(client, async (token) =>
-          client.deleteSubscription(token, Number.parseInt(id, 10))),
+          client.deleteSubscription(token, Number.parseInt(id, 10)),
+        ),
       );
     });
 }

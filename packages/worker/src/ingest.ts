@@ -1,12 +1,12 @@
-import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import {
-  INGEST_BATCH_SIZE,
-  ingestEntries,
   type EntryStore,
   type Feed,
   type FeedUpdateInput,
+  INGEST_BATCH_SIZE,
   type IngestEntryInput,
+  ingestEntries,
 } from "@headrss/core";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 
@@ -241,7 +241,9 @@ const putFeedRoute = createRoute({
   tags: ["ingest"],
 });
 
-export function apiKeyAuth(configuredKey?: string): MiddlewareHandler<IngestEnv> {
+export function apiKeyAuth(
+  configuredKey?: string,
+): MiddlewareHandler<IngestEnv> {
   return async (c, next) => {
     const expectedKey = configuredKey ?? c.env.INGEST_API_KEY;
     const authorization = c.req.header("Authorization");
@@ -266,7 +268,10 @@ function isJsonRequest(contentTypeHeader: string | undefined): boolean {
   return contentTypeHeader?.toLowerCase().startsWith(jsonContentType) ?? false;
 }
 
-function splitIntoBatches<T>(items: ReadonlyArray<T>, batchSize: number): T[][] {
+function splitIntoBatches<T>(
+  items: ReadonlyArray<T>,
+  batchSize: number,
+): T[][] {
   const batches: T[][] = [];
 
   for (let index = 0; index < items.length; index += batchSize) {
@@ -282,7 +287,9 @@ function isMissingFeedError(error: unknown, feedId: number): boolean {
   );
 }
 
-function toFeedUpdateInput(input: z.infer<typeof feedUpdateSchema>): FeedUpdateInput {
+function toFeedUpdateInput(
+  input: z.infer<typeof feedUpdateSchema>,
+): FeedUpdateInput {
   const update: FeedUpdateInput = {};
 
   if (input.title !== undefined) {
@@ -347,7 +354,8 @@ export function ingestRoutes(
   ingestApiKey?: string,
 ): OpenAPIHono<IngestEnv> {
   const app = new OpenAPIHono<IngestEnv>();
-  const authMiddleware = ingestApiKey === undefined ? undefined : apiKeyAuth(ingestApiKey);
+  const authMiddleware =
+    ingestApiKey === undefined ? undefined : apiKeyAuth(ingestApiKey);
 
   if (authMiddleware !== undefined) {
     app.use("*", authMiddleware);
@@ -368,12 +376,16 @@ export function ingestRoutes(
 
     const { feedId } = c.req.valid("param");
     const items = c.req.valid("json") as IngestEntryInput[];
-    const failedBatches: Array<{ index: number; size: number; error: string }> = [];
+    const failedBatches: Array<{ index: number; size: number; error: string }> =
+      [];
 
     let inserted = 0;
     let skipped = 0;
 
-    for (const [index, batch] of splitIntoBatches(items, INGEST_BATCH_SIZE).entries()) {
+    for (const [index, batch] of splitIntoBatches(
+      items,
+      INGEST_BATCH_SIZE,
+    ).entries()) {
       try {
         const result = await ingestEntries(store, { feedId, items: batch });
         inserted += result.inserted;
@@ -386,7 +398,8 @@ export function ingestRoutes(
         failedBatches.push({
           index,
           size: batch.length,
-          error: error instanceof Error ? error.message : "Batch ingest failed.",
+          error:
+            error instanceof Error ? error.message : "Batch ingest failed.",
         });
       }
     }

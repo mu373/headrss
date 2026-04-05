@@ -1,3 +1,8 @@
+import type {
+  EntryStore,
+  FeedCredentialStore,
+  OnFeedSubscribed,
+} from "@headrss/core";
 import {
   buildOpml,
   chunkArray,
@@ -6,17 +11,16 @@ import {
   extractFeedCredentials,
   groupImportedFeeds,
   listSubscriptions,
-  markAllRead,
   MAX_OPML_FEEDS,
-  OpmlParseError,
+  markAllRead,
   OPML_BATCH_SIZE,
+  OpmlParseError,
   parseOpml,
 } from "@headrss/core";
-import type { EntryStore, FeedCredentialStore, OnFeedSubscribed } from "@headrss/core";
+import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
-import type { OpenAPIHono } from "@hono/zod-openapi";
-
+import type { NativeApiEnv } from "./shared.js";
 import {
   ApiError,
   errorResponseSchema,
@@ -27,7 +31,6 @@ import {
   timestampSchema,
   toNativeSubscription,
 } from "./shared.js";
-import type { NativeApiEnv } from "./shared.js";
 import { toFeedStreamId } from "./stream-id.js";
 
 const subscriptionPathParamsSchema = z.object({
@@ -373,7 +376,8 @@ export function registerSubscriptionRoutes(
     const subscriptions = await deps.store.listSubscriptionsByUserId(userId);
 
     return c.body(buildOpml(user, subscriptions), 200, {
-      "content-disposition": 'attachment; filename="headrss-subscriptions.opml"',
+      "content-disposition":
+        'attachment; filename="headrss-subscriptions.opml"',
       "content-type": "text/x-opml; charset=utf-8",
     });
   });
@@ -402,7 +406,9 @@ export function registerSubscriptionRoutes(
     }
 
     const labelByName = new Map<string, number>();
-    const labelNames = [...new Set(feeds.flatMap((feed) => feed.labelNames))].sort();
+    const labelNames = [
+      ...new Set(feeds.flatMap((feed) => feed.labelNames)),
+    ].sort();
 
     for (const labelName of labelNames) {
       const label = await editLabel(deps.store, {
@@ -411,7 +417,11 @@ export function registerSubscriptionRoutes(
         name: labelName,
       });
       if (label === null) {
-        throw new ApiError(500, "internal_error", "Label was not created during OPML import.");
+        throw new ApiError(
+          500,
+          "internal_error",
+          "Label was not created during OPML import.",
+        );
       }
       labelByName.set(labelName, label.id);
     }
@@ -420,8 +430,11 @@ export function registerSubscriptionRoutes(
 
     for (const batch of chunkArray(feeds, OPML_BATCH_SIZE)) {
       for (const feedInput of batch) {
-        const { url: strippedUrl, credentials } = extractFeedCredentials(feedInput.url);
-        const hadExistingFeed = (await deps.store.getFeedByUrl(strippedUrl)) !== null;
+        const { url: strippedUrl, credentials } = extractFeedCredentials(
+          feedInput.url,
+        );
+        const hadExistingFeed =
+          (await deps.store.getFeedByUrl(strippedUrl)) !== null;
 
         await editSubscription(deps.store, {
           action: "subscribe",
@@ -435,15 +448,25 @@ export function registerSubscriptionRoutes(
           : null;
 
         if (feed === null || existingSub === null) {
-          throw new ApiError(500, "internal_error", "Subscription was not found after import.");
+          throw new ApiError(
+            500,
+            "internal_error",
+            "Subscription was not found after import.",
+          );
         }
 
         if (credentials !== null) {
-          await storeBasicCredentials(deps.credentialStore, feed.id, credentials);
+          await storeBasicCredentials(
+            deps.credentialStore,
+            feed.id,
+            credentials,
+          );
         }
 
         const labelIds = new Set(
-          (await deps.store.listSubscriptionLabels(existingSub.id)).map((label) => label.id),
+          (await deps.store.listSubscriptionLabels(existingSub.id)).map(
+            (label) => label.id,
+          ),
         );
         for (const labelName of feedInput.labelNames) {
           const labelId = labelByName.get(labelName);
@@ -451,10 +474,15 @@ export function registerSubscriptionRoutes(
             labelIds.add(labelId);
           }
         }
-        await deps.store.replaceSubscriptionLabels(existingSub.id, [...labelIds]);
+        await deps.store.replaceSubscriptionLabels(existingSub.id, [
+          ...labelIds,
+        ]);
 
         if (!hadExistingFeed && deps.onFeedSubscribed) {
-          const promise = deps.onFeedSubscribed({ feedId: feed.id, feedUrl: feed.url });
+          const promise = deps.onFeedSubscribed({
+            feedId: feed.id,
+            feedUrl: feed.url,
+          });
           c.executionCtx?.waitUntil?.(promise);
         }
 
@@ -471,7 +499,10 @@ export function registerSubscriptionRoutes(
       middleware: deps.authMiddleware,
     } as any,
     async (c: any) => {
-      const subscriptions = await listSubscriptions(deps.store, c.get("userId"));
+      const subscriptions = await listSubscriptions(
+        deps.store,
+        c.get("userId"),
+      );
 
       return c.json(
         {
@@ -489,13 +520,18 @@ export function registerSubscriptionRoutes(
     } as any,
     async (c: any) => {
       const userId = c.get("userId");
-      const body = c.req.valid("json" as never) as z.output<typeof createSubscriptionBodySchema>;
-      const { url: strippedUrl, credentials } = extractFeedCredentials(body.url);
-      const labelIds = body.folder === undefined
-        ? undefined
-        : body.folder === null
-          ? []
-          : [body.folder];
+      const body = c.req.valid("json" as never) as z.output<
+        typeof createSubscriptionBodySchema
+      >;
+      const { url: strippedUrl, credentials } = extractFeedCredentials(
+        body.url,
+      );
+      const labelIds =
+        body.folder === undefined
+          ? undefined
+          : body.folder === null
+            ? []
+            : [body.folder];
 
       await editSubscription(deps.store, {
         action: "subscribe",
@@ -508,19 +544,34 @@ export function registerSubscriptionRoutes(
       if (credentials !== null) {
         const feed = await deps.store.getFeedByUrl(strippedUrl);
         if (feed !== null) {
-          await storeBasicCredentials(deps.credentialStore, feed.id, credentials);
+          await storeBasicCredentials(
+            deps.credentialStore,
+            feed.id,
+            credentials,
+          );
         }
       }
 
       if (deps.onFeedSubscribed) {
         const feed = await deps.store.getFeedByUrl(strippedUrl);
-        if (feed !== null && feed.lastFetchedAt === null && feed.fetchErrorCount === 0) {
-          const promise = deps.onFeedSubscribed({ feedId: feed.id, feedUrl: feed.url });
+        if (
+          feed !== null &&
+          feed.lastFetchedAt === null &&
+          feed.fetchErrorCount === 0
+        ) {
+          const promise = deps.onFeedSubscribed({
+            feedId: feed.id,
+            feedUrl: feed.url,
+          });
           c.executionCtx?.waitUntil?.(promise);
         }
       }
 
-      const subscription = await loadSubscriptionViewByFeedUrl(deps.store, userId, strippedUrl);
+      const subscription = await loadSubscriptionViewByFeedUrl(
+        deps.store,
+        userId,
+        strippedUrl,
+      );
 
       return c.json(toNativeSubscription(subscription), 200);
     },
@@ -560,7 +611,11 @@ export function registerSubscriptionRoutes(
         });
       }
 
-      const subscription = await loadSubscriptionViewById(deps.store, userId, id);
+      const subscription = await loadSubscriptionViewById(
+        deps.store,
+        userId,
+        id,
+      );
 
       return c.json(toNativeSubscription(subscription), 200);
     },
@@ -602,14 +657,23 @@ export function registerSubscriptionRoutes(
         typeof markAllReadBodySchema
       >;
       const before = body.before;
-      const subscription = await requireOwnedSubscription(deps.store, userId, id);
+      const subscription = await requireOwnedSubscription(
+        deps.store,
+        userId,
+        id,
+      );
       const feed = await deps.store.getFeedById(subscription.feedId);
 
       if (feed === null) {
-        throw new ApiError(404, "not_found", `Feed ${subscription.feedId} was not found.`);
+        throw new ApiError(
+          404,
+          "not_found",
+          `Feed ${subscription.feedId} was not found.`,
+        );
       }
 
-      const timestampUsec = before === undefined ? undefined : before * 1_000_000;
+      const timestampUsec =
+        before === undefined ? undefined : before * 1_000_000;
       await markAllRead(deps.store, {
         streamId: toFeedStreamId(feed.url),
         userId,
@@ -630,10 +694,20 @@ export function registerSubscriptionRoutes(
       const { id } = c.req.valid("param" as never) as z.output<
         typeof subscriptionPathParamsSchema
       >;
-      const body = c.req.valid("json" as never) as z.output<typeof setCredentialsBodySchema>;
-      const subscription = await requireOwnedSubscription(deps.store, userId, id);
+      const body = c.req.valid("json" as never) as z.output<
+        typeof setCredentialsBodySchema
+      >;
+      const subscription = await requireOwnedSubscription(
+        deps.store,
+        userId,
+        id,
+      );
 
-      await storeBasicCredentials(deps.credentialStore, subscription.feedId, body);
+      await storeBasicCredentials(
+        deps.credentialStore,
+        subscription.feedId,
+        body,
+      );
 
       return c.json({ ok: true as const }, 200);
     },
@@ -649,7 +723,11 @@ export function registerSubscriptionRoutes(
       const { id } = c.req.valid("param" as never) as z.output<
         typeof subscriptionPathParamsSchema
       >;
-      const subscription = await requireOwnedSubscription(deps.store, userId, id);
+      const subscription = await requireOwnedSubscription(
+        deps.store,
+        userId,
+        id,
+      );
       const deleted = await deps.credentialStore.delete(subscription.feedId);
 
       if (!deleted) {
@@ -669,7 +747,11 @@ async function requireOwnedSubscription(
   const subscription = await store.getSubscriptionById(subscriptionId);
 
   if (subscription === null || subscription.userId !== userId) {
-    throw new ApiError(404, "not_found", `Subscription ${subscriptionId} was not found.`);
+    throw new ApiError(
+      404,
+      "not_found",
+      `Subscription ${subscriptionId} was not found.`,
+    );
   }
 
   return subscription;
@@ -684,7 +766,11 @@ async function loadSubscriptionViewByFeedUrl(
   const subscription = subscriptions.find((item) => item.feed.url === feedUrl);
 
   if (subscription === undefined) {
-    throw new ApiError(404, "not_found", "Subscription was not found after update.");
+    throw new ApiError(
+      404,
+      "not_found",
+      "Subscription was not found after update.",
+    );
   }
 
   return subscription;
@@ -699,7 +785,11 @@ async function loadSubscriptionViewById(
   const subscription = subscriptions.find((item) => item.id === subscriptionId);
 
   if (subscription === undefined) {
-    throw new ApiError(404, "not_found", `Subscription ${subscriptionId} was not found.`);
+    throw new ApiError(
+      404,
+      "not_found",
+      `Subscription ${subscriptionId} was not found.`,
+    );
   }
 
   return subscription;
@@ -714,7 +804,10 @@ async function storeBasicCredentials(
   },
 ): Promise<void> {
   const payload = new TextEncoder().encode(
-    JSON.stringify({ username: credentials.username, password: credentials.password }),
+    JSON.stringify({
+      username: credentials.username,
+      password: credentials.password,
+    }),
   );
   await credentialStore.set(feedId, {
     authType: "basic",

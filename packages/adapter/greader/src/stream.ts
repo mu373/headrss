@@ -1,20 +1,13 @@
 import {
   CSRF_TTL,
+  type EntryStore,
   editLabel,
   listEntries,
   listEntryIds,
   markAllRead,
   markEntries,
-  type EntryStore,
 } from "@headrss/core";
-import {
-  READ_STREAM_ID,
-  STARRED_STREAM_ID,
-  parseStreamId,
-  toFeedStreamId,
-} from "./stream-id.js";
 import type { Context, Hono } from "hono";
-
 import { requireCsrf } from "./auth.js";
 import { gReaderIdToNumericId, numericIdToGReaderShortId } from "./id.js";
 import {
@@ -22,14 +15,20 @@ import {
   buildGReaderItem,
   decodeContinuationToken,
   encodeContinuationToken,
+  type GReaderAppEnv,
   getFirstParam,
   getParamValues,
   getUserId,
   loadFeedsById,
   parseOptionalInteger,
   parseStreamCount,
-  type GReaderAppEnv,
 } from "./shared.js";
+import {
+  parseStreamId,
+  READ_STREAM_ID,
+  STARRED_STREAM_ID,
+  toFeedStreamId,
+} from "./stream-id.js";
 import type { TokenSignerLike } from "./token-signer.js";
 
 interface StreamRouteDependencies {
@@ -50,7 +49,7 @@ export function registerStreamRoutes(
         },
         CSRF_TTL,
       ),
-    )
+    ),
   );
 
   app.get("/reader/api/0/stream/items/ids", async (c) => {
@@ -88,11 +87,18 @@ export function registerStreamRoutes(
       }
 
       const numericIds = ids.map(decodeGReaderNumericId);
-      const entries = await deps.store.getEntriesByNumericIds(userId, numericIds);
+      const entries = await deps.store.getEntriesByNumericIds(
+        userId,
+        numericIds,
+      );
       const publicIds = entries.map((e) => e.publicId);
       const read = resolveBooleanTag(addTags, removeTags, READ_STREAM_ID);
       const starred = resolveBooleanTag(addTags, removeTags, STARRED_STREAM_ID);
-      const addLabelIds = await resolveLabelIdsForAdd(deps.store, userId, addTags);
+      const addLabelIds = await resolveLabelIdsForAdd(
+        deps.store,
+        userId,
+        addTags,
+      );
       const removeLabelIds = await resolveLabelIdsForRemove(
         deps.store,
         userId,
@@ -122,7 +128,10 @@ export function registerStreamRoutes(
         badRequest("s is required.");
       }
 
-      const timestampUsec = parseOptionalInteger(await getFirstParam(c, "ts"), "ts");
+      const timestampUsec = parseOptionalInteger(
+        await getFirstParam(c, "ts"),
+        "ts",
+      );
 
       await markAllRead(deps.store, {
         userId: getUserId(c),
@@ -167,9 +176,10 @@ async function handleStreamItemContents(
 ): Promise<Response> {
   const rawIds = await getParamValues(c, "i");
   const numericIds = rawIds.map(decodeGReaderNumericId);
-  const entries = numericIds.length === 0
-    ? []
-    : await store.getEntriesByNumericIds(getUserId(c), numericIds);
+  const entries =
+    numericIds.length === 0
+      ? []
+      : await store.getEntriesByNumericIds(getUserId(c), numericIds);
   const feeds = await loadFeedsById(
     store,
     entries.map((entry) => entry.feedId),
@@ -179,7 +189,9 @@ async function handleStreamItemContents(
     direction: "ltr",
     id: "user/-/state/com.google/reading-list",
     updated: Math.floor(Date.now() / 1000),
-    items: entries.map((entry) => buildGReaderItem(entry, feeds.get(entry.feedId))),
+    items: entries.map((entry) =>
+      buildGReaderItem(entry, feeds.get(entry.feedId)),
+    ),
   });
 }
 
@@ -197,7 +209,9 @@ async function handleStreamContents(
   return c.json({
     id: filter.streamId,
     updated: Math.floor(Date.now() / 1000),
-    items: result.items.map((entry) => buildGReaderItem(entry, feeds.get(entry.feedId))),
+    items: result.items.map((entry) =>
+      buildGReaderItem(entry, feeds.get(entry.feedId)),
+    ),
     ...(result.continuation !== undefined
       ? { continuation: encodeContinuationToken(result.continuation) }
       : {}),
@@ -208,14 +222,20 @@ async function parseStreamFilter(
   c: Context<GReaderAppEnv>,
   providedStreamId?: string,
 ) {
-  const streamId = providedStreamId ?? await getFirstParam(c, "s");
+  const streamId = providedStreamId ?? (await getFirstParam(c, "s"));
 
   if (streamId === undefined || streamId.length === 0) {
     badRequest("s is required.");
   }
 
-  const oldestTimestamp = parseOptionalInteger(await getFirstParam(c, "ot"), "ot");
-  const newestTimestamp = parseOptionalInteger(await getFirstParam(c, "nt"), "nt");
+  const oldestTimestamp = parseOptionalInteger(
+    await getFirstParam(c, "ot"),
+    "ot",
+  );
+  const newestTimestamp = parseOptionalInteger(
+    await getFirstParam(c, "nt"),
+    "nt",
+  );
   const continuation = decodeContinuationToken(await getFirstParam(c, "c"));
   const excludeTag = await getFirstParam(c, "xt");
   const includeTag = await getFirstParam(c, "it");
@@ -228,7 +248,10 @@ async function parseStreamFilter(
     ...(continuation !== undefined ? { continuation } : {}),
     ...(excludeTag !== undefined ? { excludeTag } : {}),
     ...(includeTag !== undefined ? { includeTag } : {}),
-    sortOrder: (await getFirstParam(c, "r")) === "o" ? "oldest" as const : "newest" as const,
+    sortOrder:
+      (await getFirstParam(c, "r")) === "o"
+        ? ("oldest" as const)
+        : ("newest" as const),
   };
 }
 

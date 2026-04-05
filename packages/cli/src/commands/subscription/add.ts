@@ -1,7 +1,6 @@
 import type { Command } from "commander";
-
-import { withNativeToken } from "../../auth.js";
 import type { HeadrssApiClient, NativeLabel } from "../../api-client.js";
+import { withNativeToken } from "../../auth.js";
 import { printJson } from "../../utils.js";
 
 export function registerSubscriptionAddCommand(
@@ -14,21 +13,24 @@ export function registerSubscriptionAddCommand(
     .option("--title <title>", "Custom title")
     .option("--folder <folder>", "Folder ID or name")
     .description("Subscribe to a feed")
-    .action(async (url: string, options: { folder?: string; title?: string }) => {
-      const subscription = await withNativeToken(client, async (token) => {
-        const folder = options.folder === undefined
-          ? undefined
-          : await resolveFolderId(client, token, options.folder);
+    .action(
+      async (url: string, options: { folder?: string; title?: string }) => {
+        const subscription = await withNativeToken(client, async (token) => {
+          const folder =
+            options.folder === undefined
+              ? undefined
+              : await resolveFolderId(client, token, options.folder);
 
-        return client.addSubscription(token, {
-          ...(folder !== undefined ? { folder } : {}),
-          ...(options.title !== undefined ? { title: options.title } : {}),
-          url,
+          return client.addSubscription(token, {
+            ...(folder !== undefined ? { folder } : {}),
+            ...(options.title !== undefined ? { title: options.title } : {}),
+            url,
+          });
         });
-      });
 
-      printJson(subscription);
-    });
+        printJson(subscription);
+      },
+    );
 }
 
 async function resolveFolderId(

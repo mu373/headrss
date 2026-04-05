@@ -35,11 +35,18 @@ export function registerAdminOpmlCommands(
     .option("-o, --output <file>", "Write output to file instead of stdout")
     .description("Export OPML for a user")
     .action(async (userId: string, options: { output?: string }) => {
-      const result = await client.exportOpml(getApiKey(), Number.parseInt(userId, 10));
+      const result = await client.exportOpml(
+        getApiKey(),
+        Number.parseInt(userId, 10),
+      );
 
       if (options.output !== undefined) {
         await writeTextFileEnsuringParent(options.output, result.opml);
-        printJson({ ok: true, output: options.output, user_id: result.user_id });
+        printJson({
+          ok: true,
+          output: options.output,
+          user_id: result.user_id,
+        });
         return;
       }
 

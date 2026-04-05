@@ -35,7 +35,9 @@ export function getFetchIntervalSeconds(): number {
 }
 
 export function getFetchTimeoutMs(): number {
-  return getPositiveInteger("FETCH_TIMEOUT", DEFAULT_FETCH_TIMEOUT_SECONDS) * 1000;
+  return (
+    getPositiveInteger("FETCH_TIMEOUT", DEFAULT_FETCH_TIMEOUT_SECONDS) * 1000
+  );
 }
 
 export function getRetentionDays(): number {
@@ -49,7 +51,12 @@ export function getLogLevel(): LogLevel {
     return DEFAULT_LOG_LEVEL;
   }
 
-  if (level === "debug" || level === "info" || level === "warn" || level === "error") {
+  if (
+    level === "debug" ||
+    level === "info" ||
+    level === "warn" ||
+    level === "error"
+  ) {
     return level;
   }
 
@@ -68,7 +75,9 @@ function getPositiveInteger(name: string, fallback: number): number {
   const value = Number(raw);
 
   if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`Invalid ${name} value "${raw}". Expected a positive integer.`);
+    throw new Error(
+      `Invalid ${name} value "${raw}". Expected a positive integer.`,
+    );
   }
 
   return value;

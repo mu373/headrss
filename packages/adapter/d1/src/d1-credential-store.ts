@@ -1,4 +1,8 @@
-import type { FeedCredential, FeedCredentialInput, FeedCredentialStore } from "@headrss/core";
+import type {
+  FeedCredential,
+  FeedCredentialInput,
+  FeedCredentialStore,
+} from "@headrss/core";
 
 interface FeedCredentialRow {
   id: number;
@@ -108,14 +112,14 @@ export class D1CredentialStore implements FeedCredentialStore {
   }
 
   async #deriveKey(secret: string): Promise<CryptoKey> {
-    const digest = await crypto.subtle.digest("SHA-256", this.#encoder.encode(secret));
-    return crypto.subtle.importKey(
-      "raw",
-      digest,
-      { name: "AES-GCM" },
-      false,
-      ["encrypt", "decrypt"],
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      this.#encoder.encode(secret),
     );
+    return crypto.subtle.importKey("raw", digest, { name: "AES-GCM" }, false, [
+      "encrypt",
+      "decrypt",
+    ]);
   }
 
   async #encrypt(plaintext: ArrayBuffer): Promise<Uint8Array> {
@@ -138,10 +142,6 @@ export class D1CredentialStore implements FeedCredentialStore {
     const ciphertext = bytes.slice(12);
     const key = await this.#keyPromise;
 
-    return crypto.subtle.decrypt(
-      { name: "AES-GCM", iv },
-      key,
-      ciphertext,
-    );
+    return crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
   }
 }

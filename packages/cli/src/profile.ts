@@ -18,7 +18,11 @@ export function initProfile(cliEnvName?: string): void {
   const environmentName = resolveEnvironmentName(cliEnvName);
   const configHome = resolveConfigHome();
   const headrssConfigDir = join(configHome, "headrss");
-  const environmentConfigDir = join(headrssConfigDir, "environments", environmentName);
+  const environmentConfigDir = join(
+    headrssConfigDir,
+    "environments",
+    environmentName,
+  );
 
   profileState = {
     environmentConfigDir,
@@ -58,7 +62,8 @@ function getProfileState(): ProfileState {
 }
 
 function resolveEnvironmentName(cliEnvName?: string): string {
-  const environmentName = cliEnvName ?? process.env.HEADRSS_ENV ?? DEFAULT_ENVIRONMENT_NAME;
+  const environmentName =
+    cliEnvName ?? process.env.HEADRSS_ENV ?? DEFAULT_ENVIRONMENT_NAME;
 
   if (!ENVIRONMENT_NAME_PATTERN.test(environmentName)) {
     throw new Error(

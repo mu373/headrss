@@ -13,12 +13,16 @@ const toBase64Url = (bytes: Uint8Array): string => {
     binary += String.fromCharCode(byte);
   }
 
-  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
 };
 
 const fromBase64Url = (value: string): Uint8Array | null => {
   const normalized = value.replaceAll("-", "+").replaceAll("_", "/");
-  const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
+  const padding =
+    normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
 
   try {
     const binary = atob(`${normalized}${padding}`);
@@ -38,7 +42,10 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const toArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
-  const view = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+  const view = bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  );
   return view as ArrayBuffer;
 };
 
@@ -80,7 +87,11 @@ export class HmacTokenSigner<
     };
     const encodedPayload = encoder.encode(JSON.stringify(body));
     const signature = new Uint8Array(
-      await crypto.subtle.sign("HMAC", await this.#keyPromise, toArrayBuffer(encodedPayload)),
+      await crypto.subtle.sign(
+        "HMAC",
+        await this.#keyPromise,
+        toArrayBuffer(encodedPayload),
+      ),
     );
 
     return `${toBase64Url(encodedPayload)}.${toBase64Url(signature)}`;
@@ -105,7 +116,11 @@ export class HmacTokenSigner<
     }
 
     const expectedSignature = new Uint8Array(
-      await crypto.subtle.sign("HMAC", await this.#keyPromise, toArrayBuffer(encodedPayload)),
+      await crypto.subtle.sign(
+        "HMAC",
+        await this.#keyPromise,
+        toArrayBuffer(encodedPayload),
+      ),
     );
 
     if (!timingSafeEqual(actualSignature, expectedSignature)) {

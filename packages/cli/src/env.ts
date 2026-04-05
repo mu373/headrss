@@ -28,7 +28,9 @@ export function applyEnvFileContents(content: string): void {
     if (eqIndex === -1) continue;
 
     const rawKey = trimmed.slice(0, eqIndex).trim();
-    const key = rawKey.startsWith("export ") ? rawKey.slice("export ".length).trim() : rawKey;
+    const key = rawKey.startsWith("export ")
+      ? rawKey.slice("export ".length).trim()
+      : rawKey;
 
     if (key === "") continue;
 

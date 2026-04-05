@@ -17,7 +17,11 @@ export interface Logger {
 export function createLogger(level = getLogLevel()): Logger {
   const currentLevel = LOG_LEVEL_ORDER[level];
 
-  const log = (targetLevel: LogLevel, message: string, meta?: unknown): void => {
+  const log = (
+    targetLevel: LogLevel,
+    message: string,
+    meta?: unknown,
+  ): void => {
     if (LOG_LEVEL_ORDER[targetLevel] < currentLevel) {
       return;
     }

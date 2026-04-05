@@ -1,9 +1,9 @@
-import { editLabel, listLabels } from "@headrss/core";
 import type { EntryStore } from "@headrss/core";
+import { editLabel, listLabels } from "@headrss/core";
+import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
-import type { OpenAPIHono } from "@hono/zod-openapi";
-
+import type { NativeApiEnv } from "./shared.js";
 import {
   errorResponseSchema,
   idPathParam,
@@ -11,7 +11,6 @@ import {
   listLabelsResponseSchema,
   okResponseSchema,
 } from "./shared.js";
-import type { NativeApiEnv } from "./shared.js";
 
 const folderPathParamsSchema = z.object({
   id: idPathParam("id"),
@@ -211,7 +210,11 @@ export function registerFolderRoutes(
     async (c: any) => {
       const label = await editLabel(deps.store, {
         action: "create",
-        name: (c.req.valid("json" as never) as z.output<typeof createFolderBodySchema>).name,
+        name: (
+          c.req.valid("json" as never) as z.output<
+            typeof createFolderBodySchema
+          >
+        ).name,
         userId: c.get("userId"),
       });
 
@@ -229,11 +232,17 @@ export function registerFolderRoutes(
       middleware: deps.authMiddleware,
     } as any,
     async (c: any) => {
-      const { id } = c.req.valid("param" as never) as z.output<typeof folderPathParamsSchema>;
+      const { id } = c.req.valid("param" as never) as z.output<
+        typeof folderPathParamsSchema
+      >;
       const label = await editLabel(deps.store, {
         action: "rename",
         labelId: id,
-        name: (c.req.valid("json" as never) as z.output<typeof renameFolderBodySchema>).name,
+        name: (
+          c.req.valid("json" as never) as z.output<
+            typeof renameFolderBodySchema
+          >
+        ).name,
         userId: c.get("userId"),
       });
 
@@ -251,7 +260,9 @@ export function registerFolderRoutes(
       middleware: deps.authMiddleware,
     } as any,
     async (c: any) => {
-      const params = c.req.valid("param" as never) as z.output<typeof folderPathParamsSchema>;
+      const params = c.req.valid("param" as never) as z.output<
+        typeof folderPathParamsSchema
+      >;
       await editLabel(deps.store, {
         action: "delete",
         labelId: params.id,

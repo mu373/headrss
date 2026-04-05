@@ -1,10 +1,10 @@
 import {
-  HttpFetchTransport,
-  RssAtomFeedParser,
-  ingestEntries,
   type EntryStore,
   type FeedCredentialStore,
   type FeedSubscribedEvent,
+  HttpFetchTransport,
+  ingestEntries,
+  RssAtomFeedParser,
 } from "@headrss/core";
 
 const ACCEPT_HEADER =
@@ -36,11 +36,15 @@ export async function fetchFeedOnSubscribe(
       ) as Record<string, string>;
 
       if (credential.authType === "basic") {
-        headers["Authorization"] = `Basic ${btoa(`${decrypted.username}:${decrypted.password}`)}`;
+        headers["Authorization"] =
+          `Basic ${btoa(`${decrypted.username}:${decrypted.password}`)}`;
       } else if (credential.authType === "bearer") {
         headers["Authorization"] = `Bearer ${decrypted.token}`;
       } else if (credential.authType === "custom" && decrypted.headers) {
-        const customHeaders = JSON.parse(decrypted.headers) as Record<string, string>;
+        const customHeaders = JSON.parse(decrypted.headers) as Record<
+          string,
+          string
+        >;
         Object.assign(headers, customHeaders);
       }
     }

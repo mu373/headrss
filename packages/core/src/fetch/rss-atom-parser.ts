@@ -1,6 +1,6 @@
+import { XMLParser } from "fast-xml-parser";
 import { MAX_CONTENT_SIZE, MAX_SUMMARY_SIZE } from "../constants.js";
 import type { FeedParser, ParseResult } from "../ports/feed-parser.js";
-import { XMLParser } from "fast-xml-parser";
 
 const parser = new XMLParser({
   attributeNamePrefix: "",
@@ -42,7 +42,9 @@ function parseRss2(value: unknown): ParseResult {
       siteUrl,
       title: getText(channelObject.title),
     },
-    items: asArray(channelObject.item).map((item) => parseRssItem(item, siteUrl)),
+    items: asArray(channelObject.item).map((item) =>
+      parseRssItem(item, siteUrl),
+    ),
   };
 }
 
@@ -87,7 +89,10 @@ function parseRssItem(value: unknown, siteUrl: string | null) {
     getText(item.encoded) ?? getText(item.content),
     resolvedUrl ?? siteUrl,
   );
-  const summary = resolveHtml(getText(item.description), resolvedUrl ?? siteUrl);
+  const summary = resolveHtml(
+    getText(item.description),
+    resolvedUrl ?? siteUrl,
+  );
   const title = getText(item.title);
 
   return {
@@ -132,7 +137,9 @@ function asArray<T>(value: T | T[] | undefined): T[] {
 }
 
 function toObject(value: unknown): Record<string, unknown> {
-  return typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function getText(value: unknown): string | null {
@@ -261,19 +268,27 @@ function normalizeUrl(value: string | null): string | null {
   }
 }
 
-function resolveUrl(value: string | null, baseUrl: string | null): string | null {
+function resolveUrl(
+  value: string | null,
+  baseUrl: string | null,
+): string | null {
   if (value === null) {
     return null;
   }
 
   try {
-    return baseUrl === null ? new URL(value).toString() : new URL(value, baseUrl).toString();
+    return baseUrl === null
+      ? new URL(value).toString()
+      : new URL(value, baseUrl).toString();
   } catch {
     return value;
   }
 }
 
-function resolveHtml(value: string | null, baseUrl: string | null): string | null {
+function resolveHtml(
+  value: string | null,
+  baseUrl: string | null,
+): string | null {
   if (value === null || baseUrl === null || !/[<>]/.test(value)) {
     return value;
   }

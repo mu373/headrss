@@ -10,19 +10,26 @@ describe("editSubscription", () => {
     const user = store.seedUser({ username: "alice" });
     const label = store.seedLabel({ userId: user.id, name: "Tech" });
 
-    const subscription = await editSubscription(store as unknown as EntryStore, {
-      action: "subscribe",
-      userId: user.id,
-      feedUrl: "https://example.com/feed.xml",
-      customTitle: "Example Feed",
-      labelIds: [label.id],
-    });
+    const subscription = await editSubscription(
+      store as unknown as EntryStore,
+      {
+        action: "subscribe",
+        userId: user.id,
+        feedUrl: "https://example.com/feed.xml",
+        customTitle: "Example Feed",
+        labelIds: [label.id],
+      },
+    );
 
     expect(subscription).not.toBeNull();
-    expect(await store.getFeedByUrl("https://example.com/feed.xml")).toMatchObject({
+    expect(
+      await store.getFeedByUrl("https://example.com/feed.xml"),
+    ).toMatchObject({
       title: null,
     });
-    expect(await store.listSubscriptionLabels(subscription!.id)).toEqual([label]);
+    expect(await store.listSubscriptionLabels(subscription!.id)).toEqual([
+      label,
+    ]);
   });
 
   it("renames, moves, and unsubscribes a subscription", async () => {
@@ -52,7 +59,9 @@ describe("editSubscription", () => {
       subscriptionId: subscription.id,
       labelIds: [label.id],
     });
-    expect(await store.listSubscriptionLabels(subscription.id)).toEqual([label]);
+    expect(await store.listSubscriptionLabels(subscription.id)).toEqual([
+      label,
+    ]);
 
     await editSubscription(store as unknown as EntryStore, {
       action: "unsubscribe",
@@ -67,7 +76,10 @@ describe("editSubscription", () => {
     const store = new InMemoryEntryStore();
     const user = store.seedUser({ username: "alice" });
     const otherUser = store.seedUser({ username: "bob" });
-    const foreignLabel = store.seedLabel({ userId: otherUser.id, name: "Other" });
+    const foreignLabel = store.seedLabel({
+      userId: otherUser.id,
+      name: "Other",
+    });
 
     await expect(
       editSubscription(store as unknown as EntryStore, {

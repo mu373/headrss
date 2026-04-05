@@ -1,13 +1,12 @@
 import {
-  INGEST_BATCH_SIZE,
   type FeedMetaUpdate,
+  INGEST_BATCH_SIZE,
   type IngestResult,
   type IngestSink,
   type ParsedItem,
 } from "@headrss/core";
-
+import type { HeadrssApiClient } from "../api-client.js";
 import { chunk, sleep } from "../utils.js";
-import { HeadrssApiClient } from "../api-client.js";
 
 interface SinkLogger {
   warn(message: string, meta?: unknown): void;
@@ -41,14 +40,19 @@ export class HttpIngestSink implements IngestSink {
 
   async updateFeedMeta(feedId: number, meta: FeedMetaUpdate): Promise<void> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      const response = await this.request("PUT", `/ingest/feeds/${feedId}`, meta);
+      const response = await this.request(
+        "PUT",
+        `/ingest/feeds/${feedId}`,
+        meta,
+      );
 
       if (response.status < 400) {
         return;
       }
 
       if (response.status === 429) {
-        const retryMs = parseRetryAfter(response.headers) ?? backoffDelayMs(attempt);
+        const retryMs =
+          parseRetryAfter(response.headers) ?? backoffDelayMs(attempt);
         await sleep(retryMs);
         continue;
       }
@@ -58,13 +62,18 @@ export class HttpIngestSink implements IngestSink {
         continue;
       }
 
-      throw new Error(`Feed update for ${feedId} was rejected with ${response.status}.`);
+      throw new Error(
+        `Feed update for ${feedId} was rejected with ${response.status}.`,
+      );
     }
 
     throw new Error(`Failed to update feed ${feedId} after retries.`);
   }
 
-  private async pushBatch(feedId: number, items: ParsedItem[]): Promise<IngestResult> {
+  private async pushBatch(
+    feedId: number,
+    items: ParsedItem[],
+  ): Promise<IngestResult> {
     let pending = [items];
     let inserted = 0;
     let skipped = 0;
@@ -88,7 +97,10 @@ export class HttpIngestSink implements IngestSink {
         );
 
         if (response.status === 200) {
-          const result = response.body as { inserted?: number; skipped?: number };
+          const result = response.body as {
+            inserted?: number;
+            skipped?: number;
+          };
           inserted += result.inserted ?? 0;
           skipped += result.skipped ?? 0;
           continue;
@@ -96,14 +108,21 @@ export class HttpIngestSink implements IngestSink {
 
         if (response.status === 207) {
           const result = response.body as {
-            failedBatches?: Array<{ error: string; index: number; size: number }>;
+            failedBatches?: Array<{
+              error: string;
+              index: number;
+              size: number;
+            }>;
             inserted?: number;
             skipped?: number;
           };
           inserted += result.inserted ?? 0;
           skipped += result.skipped ?? 0;
 
-          if (Array.isArray(result.failedBatches) && result.failedBatches.length > 0) {
+          if (
+            Array.isArray(result.failedBatches) &&
+            result.failedBatches.length > 0
+          ) {
             for (const failed of result.failedBatches) {
               const failedBatch = batch.slice(
                 failed.index * INGEST_BATCH_SIZE,
@@ -120,8 +139,12 @@ export class HttpIngestSink implements IngestSink {
         }
 
         if (response.status === 429) {
-          const retryMs = parseRetryAfter(response.headers) ?? backoffDelayMs(attempt);
-          this.logger?.warn("Ingest rate limited, retrying batch.", { feedId, retryMs });
+          const retryMs =
+            parseRetryAfter(response.headers) ?? backoffDelayMs(attempt);
+          this.logger?.warn("Ingest rate limited, retrying batch.", {
+            feedId,
+            retryMs,
+          });
           await sleep(retryMs);
           nextPending.push(batch);
           continue;
@@ -133,7 +156,9 @@ export class HttpIngestSink implements IngestSink {
           continue;
         }
 
-        throw new Error(`Ingest rejected feed ${feedId} batch with ${response.status}.`);
+        throw new Error(
+          `Ingest rejected feed ${feedId} batch with ${response.status}.`,
+        );
       }
 
       pending = nextPending;
@@ -144,7 +169,9 @@ export class HttpIngestSink implements IngestSink {
     }
 
     if (pending.length > 0) {
-      throw new Error(`Failed to ingest ${pending.length} batch(es) for feed ${feedId}.`);
+      throw new Error(
+        `Failed to ingest ${pending.length} batch(es) for feed ${feedId}.`,
+      );
     }
 
     return { inserted, skipped };
@@ -207,5 +234,7 @@ async function parseBody(response: Response): Promise<unknown> {
   }
 
   const contentType = response.headers.get("content-type") ?? "";
-  return contentType.includes("application/json") ? JSON.parse(text) as unknown : text;
+  return contentType.includes("application/json")
+    ? (JSON.parse(text) as unknown)
+    : text;
 }

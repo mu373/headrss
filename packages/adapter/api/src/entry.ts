@@ -1,20 +1,21 @@
+import type { EntryStore } from "@headrss/core";
 import {
   DEFAULT_PAGE_SIZE,
-  MAX_PAGE_SIZE,
   editLabel,
   getEntriesById,
   listEntries,
   listLabels,
+  MAX_PAGE_SIZE,
   markEntries,
 } from "@headrss/core";
-import type { EntryStore } from "@headrss/core";
+import type { OpenAPIHono } from "@hono/zod-openapi";
 import { createRoute, z } from "@hono/zod-openapi";
 import type { MiddlewareHandler } from "hono";
-import type { OpenAPIHono } from "@hono/zod-openapi";
-
+import type { NativeApiEnv } from "./shared.js";
 import {
   ApiError,
   encodeContinuationToken,
+  entrySchema,
   errorResponseSchema,
   idPathParam,
   labelSchema,
@@ -27,9 +28,7 @@ import {
   requireOwnedLabel,
   timestampSchema,
   toNativeEntry,
-  entrySchema,
 } from "./shared.js";
-import type { NativeApiEnv } from "./shared.js";
 import {
   READ_STREAM_ID,
   READING_LIST_STREAM_ID,
@@ -55,12 +54,20 @@ const listEntriesQuerySchema = z
   .object({
     continuation: z
       .string()
-      .regex(/^\d+:\d+$/, "Expected continuation token in publishedAt:id format.")
+      .regex(
+        /^\d+:\d+$/,
+        "Expected continuation token in publishedAt:id format.",
+      )
       .optional(),
     feed: z.coerce.number().int().positive().optional(),
     folder: z.coerce.number().int().positive().optional(),
     label: z.coerce.number().int().positive().optional(),
-    limit: z.coerce.number().int().min(1).max(MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_PAGE_SIZE)
+      .default(DEFAULT_PAGE_SIZE),
     starred: booleanQuerySchema,
     unread: booleanQuerySchema,
   })
@@ -329,7 +336,9 @@ export function registerEntryRoutes(
     },
     async (c: any) => {
       const userId = c.get("userId");
-      const query = c.req.valid("query") as z.output<typeof listEntriesQuerySchema>;
+      const query = c.req.valid("query") as z.output<
+        typeof listEntriesQuerySchema
+      >;
       const streamId = await resolveEntryStreamId(deps.store, userId, query);
       const includeTags: string[] = [];
 
@@ -376,8 +385,14 @@ export function registerEntryRoutes(
       middleware: deps.authMiddleware,
     },
     async (c: any) => {
-      const params = c.req.valid("param") as z.output<typeof entryPathParamsSchema>;
-      const entry = await getSingleEntry(deps.store, c.get("userId"), params.id);
+      const params = c.req.valid("param") as z.output<
+        typeof entryPathParamsSchema
+      >;
+      const entry = await getSingleEntry(
+        deps.store,
+        c.get("userId"),
+        params.id,
+      );
       return c.json(toNativeEntry(entry), 200);
     },
   );
@@ -389,20 +404,28 @@ export function registerEntryRoutes(
     },
     async (c: any) => {
       const userId = c.get("userId");
-      const { id } = c.req.valid("param") as z.output<typeof entryPathParamsSchema>;
-      const body = c.req.valid("json") as z.output<typeof updateEntryBodySchema>;
+      const { id } = c.req.valid("param") as z.output<
+        typeof entryPathParamsSchema
+      >;
+      const body = c.req.valid("json") as z.output<
+        typeof updateEntryBodySchema
+      >;
       const existing = await getSingleEntry(deps.store, userId, id);
-      const nextLabelIds = body.labels === undefined ? undefined : [...new Set(body.labels)];
-      const addLabelIds = nextLabelIds === undefined
-        ? undefined
-        : nextLabelIds.filter(
-          (labelId) => !existing.labels.some((label) => label.id === labelId),
-        );
-      const removeLabelIds = nextLabelIds === undefined
-        ? undefined
-        : existing.labels
-          .filter((label) => !nextLabelIds.includes(label.id))
-          .map((label) => label.id);
+      const nextLabelIds =
+        body.labels === undefined ? undefined : [...new Set(body.labels)];
+      const addLabelIds =
+        nextLabelIds === undefined
+          ? undefined
+          : nextLabelIds.filter(
+              (labelId) =>
+                !existing.labels.some((label) => label.id === labelId),
+            );
+      const removeLabelIds =
+        nextLabelIds === undefined
+          ? undefined
+          : existing.labels
+              .filter((label) => !nextLabelIds.includes(label.id))
+              .map((label) => label.id);
 
       await markEntries(deps.store, {
         publicIds: [id],
@@ -437,12 +460,17 @@ export function registerEntryRoutes(
     async (c: any) => {
       const label = await editLabel(deps.store, {
         action: "create",
-        name: (c.req.valid("json") as z.output<typeof createLabelBodySchema>).name,
+        name: (c.req.valid("json") as z.output<typeof createLabelBodySchema>)
+          .name,
         userId: c.get("userId"),
       });
 
       if (label === null) {
-        throw new ApiError(500, "internal_error", "Label creation did not return a label.");
+        throw new ApiError(
+          500,
+          "internal_error",
+          "Label creation did not return a label.",
+        );
       }
 
       return c.json(label, 200);
@@ -455,7 +483,9 @@ export function registerEntryRoutes(
       middleware: deps.authMiddleware,
     },
     async (c: any) => {
-      const params = c.req.valid("param") as z.output<typeof labelPathParamsSchema>;
+      const params = c.req.valid("param") as z.output<
+        typeof labelPathParamsSchema
+      >;
       await editLabel(deps.store, {
         action: "delete",
         labelId: params.id,
@@ -490,7 +520,11 @@ async function resolveEntryStreamId(
   return READING_LIST_STREAM_ID;
 }
 
-async function getSingleEntry(store: EntryStore, userId: number, publicId: string) {
+async function getSingleEntry(
+  store: EntryStore,
+  userId: number,
+  publicId: string,
+) {
   const [entry] = await getEntriesById(store, userId, [publicId]);
 
   if (entry === undefined) {

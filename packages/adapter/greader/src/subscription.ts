@@ -1,29 +1,24 @@
 import {
+  type EntryStore,
   editLabel,
   editSubscription,
   escapeXml,
   extractFeedCredentials,
-  type EntryStore,
   type FeedCredentialStore,
-  type OnFeedSubscribed,
   listSubscriptions,
+  type OnFeedSubscribed,
 } from "@headrss/core";
 import type { Hono } from "hono";
-import {
-  parseStreamId,
-  toFeedStreamId,
-  toLabelStreamId,
-} from "./stream-id.js";
-
 import { requireCsrf } from "./auth.js";
 import {
   badRequest,
+  type GReaderAppEnv,
   getFirstParam,
   getParamValues,
   getUserId,
-  type GReaderAppEnv,
   toSortId,
 } from "./shared.js";
+import { parseStreamId, toFeedStreamId, toLabelStreamId } from "./stream-id.js";
 import type { TokenSignerLike } from "./token-signer.js";
 
 interface SubscriptionRouteDependencies {
@@ -43,7 +38,10 @@ export function registerSubscriptionRoutes(
     return c.json({
       subscriptions: subscriptions.map((subscription) => ({
         id: toFeedStreamId(subscription.feed.url),
-        title: subscription.customTitle ?? subscription.feed.title ?? subscription.feed.url,
+        title:
+          subscription.customTitle ??
+          subscription.feed.title ??
+          subscription.feed.url,
         categories: subscription.labels.map((label) => ({
           id: toLabelStreamId(label.name),
           label: label.name,
@@ -75,7 +73,8 @@ export function registerSubscriptionRoutes(
       const removeTags = await getParamValues(c, "r");
 
       if (action === "subscribe") {
-        const { url: strippedUrl, credentials } = extractFeedCredentials(feedUrl);
+        const { url: strippedUrl, credentials } =
+          extractFeedCredentials(feedUrl);
         const subscription = await deps.store.getSubscriptionByUserAndFeed(
           userId,
           (await ensureFeedId(deps.store, strippedUrl)) ?? -1,
@@ -99,14 +98,25 @@ export function registerSubscriptionRoutes(
         if (credentials !== null) {
           const feed = await deps.store.getFeedByUrl(strippedUrl);
           if (feed !== null) {
-            await storeBasicCredentials(deps.credentialStore, feed.id, credentials);
+            await storeBasicCredentials(
+              deps.credentialStore,
+              feed.id,
+              credentials,
+            );
           }
         }
 
         if (deps.onFeedSubscribed) {
           const feed = await deps.store.getFeedByUrl(strippedUrl);
-          if (feed !== null && feed.lastFetchedAt === null && feed.fetchErrorCount === 0) {
-            const promise = deps.onFeedSubscribed({ feedId: feed.id, feedUrl: feed.url });
+          if (
+            feed !== null &&
+            feed.lastFetchedAt === null &&
+            feed.fetchErrorCount === 0
+          ) {
+            const promise = deps.onFeedSubscribed({
+              feedId: feed.id,
+              feedUrl: feed.url,
+            });
             c.executionCtx?.waitUntil?.(promise);
           }
         }
@@ -195,14 +205,25 @@ export function registerSubscriptionRoutes(
       if (credentials !== null) {
         const feed = await deps.store.getFeedByUrl(strippedUrl);
         if (feed !== null) {
-          await storeBasicCredentials(deps.credentialStore, feed.id, credentials);
+          await storeBasicCredentials(
+            deps.credentialStore,
+            feed.id,
+            credentials,
+          );
         }
       }
 
       if (deps.onFeedSubscribed) {
         const feed = await deps.store.getFeedByUrl(strippedUrl);
-        if (feed !== null && feed.lastFetchedAt === null && feed.fetchErrorCount === 0) {
-          const promise = deps.onFeedSubscribed({ feedId: feed.id, feedUrl: feed.url });
+        if (
+          feed !== null &&
+          feed.lastFetchedAt === null &&
+          feed.fetchErrorCount === 0
+        ) {
+          const promise = deps.onFeedSubscribed({
+            feedId: feed.id,
+            feedUrl: feed.url,
+          });
           c.executionCtx?.waitUntil?.(promise);
         }
       }
@@ -219,14 +240,18 @@ export function registerSubscriptionRoutes(
   app.get("/reader/api/0/subscription/export", async (c) => {
     const subscriptions = await listSubscriptions(deps.store, getUserId(c));
     const outlines = subscriptions.map((subscription) => {
-      const categories = subscription.labels.map((label) => label.name).join(",");
+      const categories = subscription.labels
+        .map((label) => label.name)
+        .join(",");
       const attrs = [
         `text="${escapeXml(subscription.customTitle ?? subscription.feed.title ?? subscription.feed.url)}"`,
         `title="${escapeXml(subscription.customTitle ?? subscription.feed.title ?? subscription.feed.url)}"`,
         `type="rss"`,
         `xmlUrl="${escapeXml(subscription.feed.url)}"`,
         `htmlUrl="${escapeXml(subscription.feed.siteUrl ?? subscription.feed.url)}"`,
-        ...(categories.length > 0 ? [`category="${escapeXml(categories)}"`] : []),
+        ...(categories.length > 0
+          ? [`category="${escapeXml(categories)}"`]
+          : []),
       ];
 
       return `    <outline ${attrs.join(" ")} />`;
@@ -261,13 +286,20 @@ async function resolveNextSubscriptionLabelIds(
     return undefined;
   }
 
-  const currentLabelIds = subscriptionId === undefined
-    ? new Set<number>()
-    : new Set(
-      (await store.listSubscriptionLabels(subscriptionId)).map((label) => label.id),
-    );
+  const currentLabelIds =
+    subscriptionId === undefined
+      ? new Set<number>()
+      : new Set(
+          (await store.listSubscriptionLabels(subscriptionId)).map(
+            (label) => label.id,
+          ),
+        );
   const addLabelIds = await resolveLabelIdsForAdd(store, userId, addTags);
-  const removeLabelIds = await resolveLabelIdsForRemove(store, userId, removeTags);
+  const removeLabelIds = await resolveLabelIdsForRemove(
+    store,
+    userId,
+    removeTags,
+  );
 
   for (const labelId of addLabelIds) {
     currentLabelIds.add(labelId);
@@ -357,10 +389,16 @@ async function storeBasicCredentials(
   credentials: { username: string; password: string },
 ): Promise<void> {
   const payload = new TextEncoder().encode(
-    JSON.stringify({ username: credentials.username, password: credentials.password }),
+    JSON.stringify({
+      username: credentials.username,
+      password: credentials.password,
+    }),
   );
   await credentialStore.set(feedId, {
     authType: "basic",
-    credentialsEncrypted: payload.buffer.slice(payload.byteOffset, payload.byteOffset + payload.byteLength),
+    credentialsEncrypted: payload.buffer.slice(
+      payload.byteOffset,
+      payload.byteOffset + payload.byteLength,
+    ),
   });
 }

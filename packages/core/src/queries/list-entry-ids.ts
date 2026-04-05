@@ -17,6 +17,8 @@ export async function listEntryIds(
   return {
     ids: result.items.map((item) => item.publicId),
     entries: result.items,
-    ...(result.continuation !== undefined ? { continuation: result.continuation } : {}),
+    ...(result.continuation !== undefined
+      ? { continuation: result.continuation }
+      : {}),
   };
 }

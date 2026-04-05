@@ -104,7 +104,10 @@ describe("markEntries", () => {
       publishedAt: 100,
     });
     const ownedLabel = store.seedLabel({ userId: user.id, name: "Work" });
-    const foreignLabel = store.seedLabel({ userId: otherUser.id, name: "Other" });
+    const foreignLabel = store.seedLabel({
+      userId: otherUser.id,
+      name: "Other",
+    });
 
     store.seedSubscription({ userId: user.id, feedId: feed.id });
 
