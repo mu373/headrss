@@ -8,3 +8,4 @@ wrangler.toml
 .turbo
 plan/
 /headrss
+packages/cli/headrss
