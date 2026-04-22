@@ -16,7 +16,7 @@
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.2.2",
     "fast-xml-parser": "^5.5.8",
-    "hono": "^4.12.9",
+    "hono": "^4.12.14",
     "zod": "^4.3.6"
   },
   "devDependencies": {

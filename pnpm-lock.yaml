@@ -32,10 +32,10 @@ importers:
         version: link:../../core
       '@hono/zod-openapi':
         specifier: ^1.2.2
-        version: 1.2.2(hono@4.12.10)(zod@4.3.6)
+        version: 1.2.2(hono@4.12.14)(zod@4.3.6)
       hono:
-        specifier: ^4.12.9
-        version: 4.12.10
+        specifier: ^4.12.14
+        version: 4.12.14
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -57,10 +57,10 @@ importers:
         version: link:../../core
       '@hono/zod-openapi':
         specifier: ^1.2.2
-        version: 1.2.2(hono@4.12.10)(zod@4.3.6)
+        version: 1.2.2(hono@4.12.14)(zod@4.3.6)
       hono:
-        specifier: ^4.12.9
-        version: 4.12.10
+        specifier: ^4.12.14
+        version: 4.12.14
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -106,16 +106,16 @@ importers:
         version: link:../core
       '@hono/swagger-ui':
         specifier: ^0.6.1
-        version: 0.6.1(hono@4.12.10)
+        version: 0.6.1(hono@4.12.14)
       '@hono/zod-openapi':
         specifier: ^1.2.2
-        version: 1.2.2(hono@4.12.10)(zod@4.3.6)
+        version: 1.2.2(hono@4.12.14)(zod@4.3.6)
       fast-xml-parser:
         specifier: ^5.5.8
         version: 5.5.8
       hono:
-        specifier: ^4.12.9
-        version: 4.12.10
+        specifier: ^4.12.14
+        version: 4.12.14
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -587,8 +587,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@napi-rs/wasm-runtime@1.1.3':
-    resolution: {integrity: sha512-xK9sGVbJWYb08+mTJt3/YV24WxvxpXcXtP6B172paPZ+Ts69Re9dAr7lKwJoeIx8OoeuimEiRZ7umkiUVClmmQ==}
+  '@napi-rs/wasm-runtime@1.1.4':
+    resolution: {integrity: sha512-3NQNNgA1YSlJb/kMH1ildASP9HW7/7kYnRI2szWJaofaS1hWmbGI4H+d3+22aGzXXN9IJ+n+GiFVcGipJP18ow==}
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
@@ -832,8 +832,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  hono@4.12.10:
-    resolution: {integrity: sha512-mx/p18PLy5og9ufies2GOSUqep98Td9q4i/EF6X7yJgAiIopxqdfIO3jbqsi3jRgTgw88jMDEzVKi+V2EF+27w==}
+  hono@4.12.14:
+    resolution: {integrity: sha512-am5zfg3yu6sqn5yjKBNqhnTX7Cv+m00ox+7jbaKkrLMRJ4rAdldd1xPd/JzbBWspqaQv6RSTrgFN95EsfhC+7w==}
     engines: {node: '>=16.9.0'}
 
   kleur@4.1.5:
@@ -954,8 +954,8 @@ packages:
     resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
     engines: {node: '>=12'}
 
-  postcss@8.5.9:
-    resolution: {integrity: sha512-7a70Nsot+EMX9fFU3064K/kdHWZqGVY+BADLyXc8Dfv+mTLLVl6JzJpPaCZ2kQL9gIJvKXSLMHhqdRRjwQeFtw==}
+  postcss@8.5.10:
+    resolution: {integrity: sha512-pMMHxBOZKFU6HgAZ4eyGnwXF/EvPGGqUr0MnZ5+99485wwW41kW91A4LOGxSHhgugZmSChL5AlElNdwlNgcnLQ==}
     engines: {node: ^10 || ^12 || >=14}
 
   rolldown@1.0.0-rc.9:
@@ -1322,21 +1322,21 @@ snapshots:
   '@esbuild/win32-x64@0.27.3':
     optional: true
 
-  '@hono/swagger-ui@0.6.1(hono@4.12.10)':
+  '@hono/swagger-ui@0.6.1(hono@4.12.14)':
     dependencies:
-      hono: 4.12.10
+      hono: 4.12.14
 
-  '@hono/zod-openapi@1.2.2(hono@4.12.10)(zod@4.3.6)':
+  '@hono/zod-openapi@1.2.2(hono@4.12.14)(zod@4.3.6)':
     dependencies:
       '@asteasolutions/zod-to-openapi': 8.4.3(zod@4.3.6)
-      '@hono/zod-validator': 0.7.6(hono@4.12.10)(zod@4.3.6)
-      hono: 4.12.10
+      '@hono/zod-validator': 0.7.6(hono@4.12.14)(zod@4.3.6)
+      hono: 4.12.14
       openapi3-ts: 4.5.0
       zod: 4.3.6
 
-  '@hono/zod-validator@0.7.6(hono@4.12.10)(zod@4.3.6)':
+  '@hono/zod-validator@0.7.6(hono@4.12.14)(zod@4.3.6)':
     dependencies:
-      hono: 4.12.10
+      hono: 4.12.14
       zod: 4.3.6
 
   '@img/colour@1.1.0': {}
@@ -1444,7 +1444,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@napi-rs/wasm-runtime@1.1.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
+  '@napi-rs/wasm-runtime@1.1.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
       '@emnapi/core': 1.9.1
       '@emnapi/runtime': 1.9.1
@@ -1505,7 +1505,7 @@ snapshots:
 
   '@rolldown/binding-wasm32-wasi@1.0.0-rc.9(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
+      '@napi-rs/wasm-runtime': 1.1.4(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -1662,7 +1662,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  hono@4.12.10: {}
+  hono@4.12.14: {}
 
   kleur@4.1.5: {}
 
@@ -1753,7 +1753,7 @@ snapshots:
 
   picomatch@4.0.4: {}
 
-  postcss@8.5.9:
+  postcss@8.5.10:
     dependencies:
       nanoid: 3.3.11
       picocolors: 1.1.1
@@ -1862,7 +1862,7 @@ snapshots:
       '@oxc-project/runtime': 0.115.0
       lightningcss: 1.32.0
       picomatch: 4.0.4
-      postcss: 8.5.9
+      postcss: 8.5.10
       rolldown: 1.0.0-rc.9(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       tinyglobby: 0.2.16
     optionalDependencies:
